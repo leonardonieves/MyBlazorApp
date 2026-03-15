@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Sensitive configuration files
+MyBlazorApp/appsettings.json
+MyBlazorApp/appsettings.*.json
+!MyBlazorApp/appsettings.example.json
