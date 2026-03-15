@@ -1,0 +1,145 @@
+@page "/register"
+@rendermode InteractiveServer
+@layout LoginLayout
+@using MyBlazorApp.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="container-fluid min-vh-100 d-flex align-items-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow-lg" style="border: none; border-radius: 15px;">
+                    <div class="card-body p-5">
+                        <h2 class="text-center mb-4" style="color: #667eea;">
+                            <i class="bi bi-person-plus"></i> Create Account
+                        </h2>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert alert-success" role="alert">
+                                @successMessage
+                                <NavLink href="/login">Go to Login</NavLink>
+                            </div>
+                        }
+
+                        <form @onsubmit="HandleRegister">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" @bind="username" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" @bind="email" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" @bind="password" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="confirmPassword" @bind="confirmPassword" required />
+                            </div>
+
+                            <button type="submit" class="btn w-100 mb-3" style="background: #667eea; color: white; border: none; padding: 10px; font-weight: bold;" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Creating Account...</span>
+                                }
+                                else
+                                {
+                                    <span>Register</span>
+                                }
+                            </button>
+                        </form>
+
+                        <hr />
+
+                        <p class="text-center text-muted">Already have an account?</p>
+                        <NavLink href="/login" class="btn btn-outline-primary w-100">
+                            Login
+                        </NavLink>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string username = "";
+    private string email = "";
+    private string password = "";
+    private string confirmPassword = "";
+    private string errorMessage = "";
+    private string successMessage = "";
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        errorMessage = "";
+        successMessage = "";
+
+        // Validations
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            errorMessage = "Username is required";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            errorMessage = "Email is required";
+            return;
+        }
+
+        if (password != confirmPassword)
+        {
+            errorMessage = "Passwords do not match";
+            return;
+        }
+
+        if (password.Length < 6)
+        {
+            errorMessage = "Password must be at least 6 characters";
+            return;
+        }
+
+        isLoading = true;
+
+        try
+        {
+            var result = await AuthService.RegisterAsync(username, email, password, "Basic");
+
+            if (result.success)
+            {
+                successMessage = "Account created successfully! Redirecting to login...";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = result.message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

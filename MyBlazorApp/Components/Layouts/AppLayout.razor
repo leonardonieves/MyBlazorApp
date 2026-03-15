@@ -1,0 +1,65 @@
+@inherits LayoutComponentBase
+@using MyBlazorApp.Services
+@inject SessionService SessionService
+@inject NavigationManager Navigation
+
+@if (!SessionService.IsAuthenticated())
+{
+    <div class="alert alert-warning m-0">
+        <p>You must be logged in to access this page.</p>
+        <NavLink href="/login">Go to Login</NavLink>
+    </div>
+}
+else
+{
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <nav class="navbar navbar-dark bg-dark" style="min-width: 250px; flex-direction: column;">
+            <div class="p-3">
+                <h5 class="text-white mb-4">
+                    <i class="bi bi-credit-card"></i> Payment System
+                </h5>
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/dashboard" Match="NavLinkMatch.All">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/stripe-checkout">
+                            <i class="bi bi-credit-card"></i> New Payment
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/stripe-info">
+                            <i class="bi bi-info-circle"></i> Information
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
+
+            <hr class="bg-secondary" />
+
+            <div class="p-3 w-100">
+                <p class="text-muted small mb-2">Logged as:</p>
+                <p class="text-white small">@SessionService.GetCurrentUser()?.Username</p>
+                <button class="btn btn-sm btn-danger w-100" @onclick="HandleLogout">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-grow-1">
+            @Body
+        </div>
+    </div>
+}
+
+@code {
+    private void HandleLogout()
+    {
+        SessionService.Logout();
+        Navigation.NavigateTo("/login", true);
+    }
+}

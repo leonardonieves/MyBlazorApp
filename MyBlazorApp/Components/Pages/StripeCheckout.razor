@@ -1,0 +1,117 @@
+@page "/stripe-checkout"
+@rendermode InteractiveServer
+@layout AppLayout
+@using MyBlazorApp.Services
+@inject StripeService StripeService
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Stripe Checkout Payment</h2>
+
+                    @if (isProcessing)
+                    {
+                        <div class="alert alert-info">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Redirecting to Stripe Checkout...
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-group mb-3">
+                            <label for="productName">Product Name</label>
+                            <input type="text" class="form-control" id="productName" @bind="productName" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="amount">Amount ($)</label>
+                            <input type="number" class="form-control" id="amount" @bind="amount" step="0.01" min="0.01" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+
+                        <button class="btn btn-primary w-100" @onclick="ProcessPayment" disabled="@isProcessing">
+                            Proceed to Payment
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Test Information</h5>
+                    <p class="text-muted small">
+                        For testing, use card: <strong>4242 4242 4242 4242</strong><br/>
+                        Date: Any future date (e.g., 12/25)<br/>
+                        CVC: Any 3-digit number
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string productName = "Sample Product";
+    private decimal amount = 29.99m;
+    private string errorMessage = "";
+    private bool isProcessing = false;
+
+    private async Task ProcessPayment()
+    {
+        // Validation
+        if (amount <= 0)
+        {
+            errorMessage = "Amount must be greater than 0";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(productName))
+        {
+            errorMessage = "Product name is required";
+            return;
+        }
+
+        isProcessing = true;
+        errorMessage = "";
+
+        try
+        {
+            // Redirect URLs
+            var baseUrl = Navigation.BaseUri.TrimEnd('/');
+            var successUrl = $"{baseUrl}/payment-success";
+            var cancelUrl = $"{baseUrl}/payment-cancel";
+
+            // Create Stripe session
+            var sessionId = await StripeService.CreateCheckoutSessionAsync(
+                amount,
+                productName,
+                successUrl,
+                cancelUrl
+            );
+
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                throw new Exception("Failed to create Stripe session");
+            }
+
+            // Redirect directly to Stripe Checkout
+            var checkoutUrl = $"https://checkout.stripe.com/pay/{sessionId}";
+            Navigation.NavigateTo(checkoutUrl, true);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+            isProcessing = false;
+        }
+    }
+}
+

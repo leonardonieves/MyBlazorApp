@@ -1,0 +1,144 @@
+@page "/stripe-info"
+@layout AppLayout
+
+<div class="container mt-5">
+    <h1>Learning Blazor + Stripe Integration</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Key Concepts</h5>
+                </div>
+                <div class="card-body">
+                    <h6>1. Stripe Checkout (Simplest)</h6>
+                    <p>Redirects the user to a Stripe-hosted page. Stripe handles all security and PCI compliance.</p>
+                    <ul>
+                        <li>✅ More secure (hosted by Stripe)</li>
+                        <li>✅ PCI DSS compliant</li>
+                        <li>❌ Less customization</li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>2. Payment Intent (More Control)</h6>
+                    <p>Create a Payment Intent on the server and complete the payment on the client with Stripe.js.</p>
+                    <ul>
+                        <li>✅ Greater customization</li>
+                        <li>✅ Experience on your site</li>
+                        <li>❌ Requires more implementation</li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>3. Webhooks</h6>
+                    <p>Events that Stripe sends to your server when changes occur (payment_intent.succeeded, etc).</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Payment Flow in Blazor</h5>
+                </div>
+                <div class="card-body">
+                    <pre><code>
+User (Blazor)
+    ↓
+StripeService.CreateCheckoutSessionAsync()
+    ↓
+Server (Creates Session in Stripe)
+    ↓
+Returns Session ID
+    ↓
+JavaScript (redirectToCheckout)
+    ↓
+Stripe Checkout Page
+    ↓
+User completes payment
+    ↓
+Stripe redirects to successUrl or cancelUrl
+                    </code></pre>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Setup Steps</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li><strong>Sign up for Stripe:</strong> <a href="https://dashboard.stripe.com/register" target="_blank">stripe.com</a></li>
+                        <li><strong>Get credentials:</strong> Go to API Keys in the dashboard</li>
+                        <li><strong>Update appsettings.json:</strong>
+                            <pre><code>"Stripe": {
+  "PublishableKey": "pk_test_...",
+  "SecretKey": "sk_test_..."
+}</code></pre>
+                        </li>
+                        <li><strong>Install NuGet Package:</strong> <code>Stripe.net</code></li>
+                        <li><strong>Test with test cards</strong></li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Test Cards</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Scenario</th>
+                                <th>Card</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Success</td>
+                                <td><code>4242 4242 4242 4242</code></td>
+                            </tr>
+                            <tr>
+                                <td>Declined</td>
+                                <td><code>4000 0000 0000 0002</code></td>
+                            </tr>
+                            <tr>
+                                <td>Requires Authentication</td>
+                                <td><code>4000 0025 0000 3155</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="text-muted small">Use any future date and 3-digit CVC</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Useful Resources</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li><a href="https://docs.stripe.com" target="_blank">Official Stripe Documentation</a></li>
+                        <li><a href="https://stripe.com/docs/stripe-js" target="_blank">Stripe.js Documentation</a></li>
+                        <li><a href="https://github.com/stripe/stripe-dotnet" target="_blank">Stripe .NET Library</a></li>
+                        <li><a href="https://learn.microsoft.com/en-us/aspnet/core/blazor" target="_blank">Blazor Documentation</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Links</h5>
+                    <NavLink href="/stripe-checkout" class="btn btn-primary btn-sm w-100 mb-2">
+                        Go to Payment
+                    </NavLink>
+                    <NavLink href="/" class="btn btn-secondary btn-sm w-100">
+                        Home
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
