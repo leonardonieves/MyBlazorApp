@@ -1,0 +1,7 @@
+# Archivos sensibles - NO SUBIR
+MyBlazorApp/appsettings.json
+MyBlazorApp/appsettings.Development.json
+MyBlazorApp/appsettings.Production.json
+
+# Permitir el archivo de ejemplo
+!MyBlazorApp/appsettings.example.json
