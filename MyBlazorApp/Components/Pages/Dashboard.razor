@@ -4,6 +4,7 @@
 @using MyBlazorApp.Services
 @using MyBlazorApp.Models
 @inject PaymentService PaymentService
+@inject SessionService SessionService
 @inject NavigationManager Navigation
 
 <div class="container-fluid py-4">
@@ -147,6 +148,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Verificar autenticación
+        if (!SessionService.IsAuthenticated())
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
         await LoadData();
     }
 
@@ -170,6 +178,7 @@
 
     private void Logout()
     {
-        Navigation.NavigateTo("/login", true);
+        SessionService.Logout();
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

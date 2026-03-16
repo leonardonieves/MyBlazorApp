@@ -57,9 +57,19 @@ else
 }
 
 @code {
+    protected override void OnInitialized()
+    {
+        // Asegurarse de que tenemos un CircuitId
+        if (SessionService.GetCurrentUser() == null)
+        {
+            var circuitId = Guid.NewGuid().ToString();
+            SessionService.SetCircuitId(circuitId);
+        }
+    }
+
     private void HandleLogout()
     {
         SessionService.Logout();
-        Navigation.NavigateTo("/login", true);
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

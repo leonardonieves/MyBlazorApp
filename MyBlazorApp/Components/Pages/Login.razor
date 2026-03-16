@@ -73,6 +73,13 @@
     private string errorMessage = "";
     private bool isLoading = false;
 
+    protected override void OnInitialized()
+    {
+        // Establecer un ID de circuito único para esta sesión
+        var circuitId = Guid.NewGuid().ToString();
+        SessionService.SetCircuitId(circuitId);
+    }
+
     private async Task HandleLogin()
     {
         isLoading = true;
@@ -86,7 +93,18 @@
             {
                 // Guardar usuario en sesión
                 SessionService.SetCurrentUser(result.user);
-                Navigation.NavigateTo("/dashboard");
+
+                // Verificar que se guardó correctamente
+                var savedUser = SessionService.GetCurrentUser();
+                if (savedUser != null)
+                {
+                    // Redirigir al dashboard
+                    Navigation.NavigateTo("/dashboard", forceLoad: true);
+                }
+                else
+                {
+                    errorMessage = "Error saving session";
+                }
             }
             else
             {

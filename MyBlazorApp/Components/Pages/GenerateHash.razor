@@ -1,0 +1,35 @@
+@page "/generate-hash"
+@rendermode InteractiveServer
+@using System.Security.Cryptography
+@using System.Text
+
+<h3>Password Hash Generator</h3>
+
+<div class="mb-3">
+    <label>Password:</label>
+    <input @bind="password" type="text" class="form-control" />
+</div>
+
+<button @onclick="Generate" class="btn btn-primary">Generate Hash</button>
+
+@if (!string.IsNullOrEmpty(hash))
+{
+    <div class="mt-3">
+        <strong>Hash (Base64):</strong>
+        <code>@hash</code>
+    </div>
+}
+
+@code {
+    private string password = "";
+    private string hash = "";
+
+    private void Generate()
+    {
+        using (var sha256 = SHA256.Create())
+        {
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            hash = Convert.ToBase64String(hashedBytes);
+        }
+    }
+}

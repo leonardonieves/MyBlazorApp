@@ -20,7 +20,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<StripeService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PaymentService>();
-builder.Services.AddScoped<SessionService>();
+builder.Services.AddSingleton<SessionService>(); // Singleton para mantener sesiones entre circuitos
 
 // Add distributed cache for sessions
 builder.Services.AddDistributedMemoryCache();

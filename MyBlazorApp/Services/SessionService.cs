@@ -1,31 +1,56 @@
 using MyBlazorApp.Models;
+using System.Collections.Concurrent;
 
 namespace MyBlazorApp.Services;
 
 /// <summary>
-/// Servicio para mantener el estado de autenticación del usuario
+/// Servicio Singleton para mantener el estado de autenticación del usuario por circuito
 /// </summary>
 public class SessionService
 {
-    private User? _currentUser;
+    // Diccionario thread-safe para mantener usuarios por ID de circuito
+    private readonly ConcurrentDictionary<string, User> _activeUsers = new();
+    private string? _currentCircuitId;
+
+    public void SetCircuitId(string circuitId)
+    {
+        _currentCircuitId = circuitId;
+    }
 
     public User? GetCurrentUser()
     {
-        return _currentUser;
+        if (string.IsNullOrEmpty(_currentCircuitId))
+            return null;
+
+        _activeUsers.TryGetValue(_currentCircuitId, out var user);
+        return user;
     }
 
     public void SetCurrentUser(User? user)
     {
-        _currentUser = user;
+        if (string.IsNullOrEmpty(_currentCircuitId))
+            return;
+
+        if (user == null)
+        {
+            _activeUsers.TryRemove(_currentCircuitId, out _);
+        }
+        else
+        {
+            _activeUsers[_currentCircuitId] = user;
+        }
     }
 
     public bool IsAuthenticated()
     {
-        return _currentUser != null;
+        return GetCurrentUser() != null;
     }
 
     public void Logout()
     {
-        _currentUser = null;
+        if (!string.IsNullOrEmpty(_currentCircuitId))
+        {
+            _activeUsers.TryRemove(_currentCircuitId, out _);
+        }
     }
 }
