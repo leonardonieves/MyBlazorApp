@@ -46,11 +46,41 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Payment>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.StripeSessionId).IsRequired();
-            entity.Property(e => e.ProductName).IsRequired();
-            entity.Property(e => e.Amount).HasPrecision(18, 2);
-            entity.Property(e => e.Status).IsRequired();
+
+            // Foreign key to User
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Required fields
+            entity.Property(e => e.ProductName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
             entity.Property(e => e.CreatedAt).IsRequired();
+
+            // Stripe IDs
+            entity.Property(e => e.StripeSessionId).HasMaxLength(255);
+            entity.Property(e => e.StripePaymentIntentId).HasMaxLength(255);
+            entity.Property(e => e.StripeCustomerId).HasMaxLength(255);
+            entity.Property(e => e.StripeInvoiceId).HasMaxLength(255);
+            entity.Property(e => e.ProductId).HasMaxLength(255);
+            entity.Property(e => e.PriceId).HasMaxLength(255);
+
+            // Customer info
+            entity.Property(e => e.CustomerEmail).HasMaxLength(100);
+            entity.Property(e => e.CustomerName).HasMaxLength(255);
+            entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+
+            // Money
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Currency).HasMaxLength(10);
+
+            // Indexes for fast queries
+            entity.HasIndex(e => e.StripeSessionId).IsUnique();
+            entity.HasIndex(e => e.StripePaymentIntentId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
         });
 
         // Seed roles

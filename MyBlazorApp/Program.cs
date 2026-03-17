@@ -16,8 +16,12 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddHttpClient();
 
+// Add controllers for API endpoints (webhooks)
+builder.Services.AddControllers();
+
 // Add custom services
 builder.Services.AddScoped<StripeService>();
+builder.Services.AddScoped<StripeWebhookService>(); // Webhook service
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<UrlConfigurationService>(); // For dynamic URL configuration
@@ -49,10 +53,17 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 app.UseSession();
 app.UseAntiforgery();
+
+// Map API controllers (webhooks)
+app.MapControllers();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

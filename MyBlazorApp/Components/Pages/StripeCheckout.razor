@@ -4,6 +4,8 @@
 @using MyBlazorApp.Services
 @using Stripe
 @inject StripeService StripeService
+@inject PaymentService PaymentService
+@inject SessionService SessionService
 @inject NavigationManager Navigation
 @inject UrlConfigurationService UrlConfigurationService
 
@@ -168,13 +170,18 @@
 
         try
         {
+            var currentUser = SessionService.GetCurrentUser();
+            if (currentUser == null)
+            {
+                throw new Exception("User not authenticated");
+            }
+
             // Get base URL from configuration (ngrok or localhost)
             var baseUrl = UrlConfigurationService.GetBaseUrl();
             var successUrl = UrlConfigurationService.GetStripeSuccessUrl();
             var cancelUrl = UrlConfigurationService.GetStripeCancelUrl();
 
             // Create Stripe session using Price ID
-            // Note: This now returns the full checkout URL, not just the session ID
             var checkoutUrl = await StripeService.CreateCheckoutSessionAsync(
                 selectedPriceId,
                 quantity,
@@ -185,6 +192,28 @@
             if (string.IsNullOrEmpty(checkoutUrl))
             {
                 throw new Exception("Failed to create Stripe session");
+            }
+
+            // Extract session ID from the Stripe Service output
+            // For now, store a pending payment record
+            // The session ID will be captured when parsing the URL or from webhook
+            var selectedProduct = products.FirstOrDefault(p => p.Id == selectedProductId);
+            var selectedPrice = selectedProductPrices.FirstOrDefault(p => p.Id == selectedPriceId);
+
+            if (selectedProduct != null && selectedPrice != null)
+            {
+                // Create payment record in database
+                await PaymentService.CreatePaymentAsync(
+                    userId: currentUser.Id,
+                    stripeSessionId: "temp_pending", // Will be updated by webhook
+                    productName: selectedProduct.Name,
+                    productId: selectedProduct.Id,
+                    priceId: selectedPriceId,
+                    amount: (selectedPrice.UnitAmount ?? 0) / 100m,
+                    quantity: quantity,
+                    customerEmail: currentUser.Email,
+                    customerName: currentUser.Username
+                );
             }
 
             // Redirect to Stripe Checkout using the URL returned by StripeService
