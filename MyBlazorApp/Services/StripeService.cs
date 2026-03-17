@@ -43,7 +43,7 @@ public class StripeService
                 {
                     new SessionLineItemOptions
                     {
-                        Price = priceId,  // Use existing Price ID from Stripe
+                        Price = priceId,
                         Quantity = quantity,
                     },
                 },
@@ -54,10 +54,21 @@ public class StripeService
 
             var service = new Stripe.Checkout.SessionService();
             var session = await service.CreateAsync(options);
-            return session.Id;
+
+            Console.WriteLine($"Session Created: {session.Id}");
+            Console.WriteLine($"Session Status: {session.Status}");
+            Console.WriteLine($"Session URL: {session.Url}");
+            Console.WriteLine($"================================");
+
+            // Return the Stripe-generated URL, not manually constructed one
+            return session.Url;
         }
         catch (StripeException ex) 
         {
+            Console.WriteLine($"STRIPE ERROR: {ex.Message}");
+            Console.WriteLine($"Error Code: {ex.StripeError?.Code}");
+            Console.WriteLine($"Error Type: {ex.StripeError?.Type}");
+            Console.WriteLine($"Error Param: {ex.StripeError?.Param}");
             throw new InvalidOperationException($"Error creating Stripe session: {ex.Message}", ex);
         }
     }

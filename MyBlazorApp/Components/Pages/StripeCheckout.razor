@@ -174,20 +174,20 @@
             var cancelUrl = UrlConfigurationService.GetStripeCancelUrl();
 
             // Create Stripe session using Price ID
-            var sessionId = await StripeService.CreateCheckoutSessionAsync(
+            // Note: This now returns the full checkout URL, not just the session ID
+            var checkoutUrl = await StripeService.CreateCheckoutSessionAsync(
                 selectedPriceId,
                 quantity,
                 successUrl,
                 cancelUrl
             );
 
-            if (string.IsNullOrEmpty(sessionId))
+            if (string.IsNullOrEmpty(checkoutUrl))
             {
                 throw new Exception("Failed to create Stripe session");
             }
 
-            // Redirect to Stripe Checkout
-            var checkoutUrl = $"https://checkout.stripe.com/pay/{sessionId}";
+            // Redirect to Stripe Checkout using the URL returned by StripeService
             Navigation.NavigateTo(checkoutUrl, forceLoad: true);
         }
         catch (Exception ex)
