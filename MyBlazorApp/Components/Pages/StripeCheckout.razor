@@ -2,8 +2,10 @@
 @rendermode InteractiveServer
 @layout AppLayout
 @using MyBlazorApp.Services
+@using Stripe
 @inject StripeService StripeService
 @inject NavigationManager Navigation
+@inject UrlConfigurationService UrlConfigurationService
 
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -12,24 +14,53 @@
                 <div class="card-body">
                     <h2 class="card-title mb-4">Stripe Checkout Payment</h2>
 
-                    @if (isProcessing)
+                    @if (isLoading)
                     {
                         <div class="alert alert-info">
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            Loading products...
+                        </div>
+                    }
+                    else if (isProcessing)
+                    {
+                        <div class="alert alert-info">
+                            <span class="spinner-border spinner-border-sm me-2"></span>
                             Redirecting to Stripe Checkout...
                         </div>
                     }
                     else
                     {
                         <div class="form-group mb-3">
-                            <label for="productName">Product Name</label>
-                            <input type="text" class="form-control" id="productName" @bind="productName" />
+                            <label for="product">Select Product</label>
+                            <select class="form-control" id="product" @onchange="OnProductChange">
+                                <option value="">-- Select a product --</option>
+                                @foreach (var product in products)
+                                {
+                                    <option value="@product.Id">@product.Name</option>
+                                }
+                            </select>
                         </div>
 
-                        <div class="form-group mb-3">
-                            <label for="amount">Amount ($)</label>
-                            <input type="number" class="form-control" id="amount" @bind="amount" step="0.01" min="0.01" />
-                        </div>
+                        @if (selectedProductPrices != null && selectedProductPrices.Count > 0)
+                        {
+                            <div class="form-group mb-3">
+                                <label for="price">Select Price</label>
+                                <select class="form-control" id="price" @bind="selectedPriceId">
+                                    <option value="">-- Select a price --</option>
+                                    @foreach (var price in selectedProductPrices)
+                                    {
+                                        <option value="@price.Id">
+                                            $@((price.UnitAmount ?? 0) / 100m).ToString("F2")
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="quantity">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" @bind="quantity" min="1" />
+                            </div>
+                        }
 
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
@@ -38,7 +69,8 @@
                             </div>
                         }
 
-                        <button class="btn btn-primary w-100" @onclick="ProcessPayment" disabled="@isProcessing">
+                        <button class="btn btn-primary w-100" @onclick="ProcessPayment" 
+                            disabled="@(isProcessing || string.IsNullOrEmpty(selectedPriceId))">
                             Proceed to Payment
                         </button>
                     }
@@ -60,23 +92,74 @@
 </div>
 
 @code {
-    private string productName = "Sample Product";
-    private decimal amount = 29.99m;
+    private List<Product> products = new();
+    private List<Price> selectedProductPrices = new();
+    private string selectedProductId = "";
+    private string selectedPriceId = "";
+    private int quantity = 1;
     private string errorMessage = "";
+    private bool isLoading = false;
     private bool isProcessing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        isLoading = true;
+        errorMessage = "";
+
+        try
+        {
+            products = await StripeService.GetProductsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading products: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnProductChange(ChangeEventArgs e)
+    {
+        selectedProductId = e.Value?.ToString() ?? "";
+        selectedPriceId = "";
+        selectedProductPrices.Clear();
+        errorMessage = "";
+
+        if (!string.IsNullOrEmpty(selectedProductId))
+        {
+            try
+            {
+                selectedProductPrices = await StripeService.GetPricesForProductAsync(selectedProductId);
+                if (!selectedProductPrices.Any())
+                {
+                    errorMessage = "No prices available for this product";
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error loading prices: {ex.Message}";
+            }
+        }
+    }
 
     private async Task ProcessPayment()
     {
-        // Validation
-        if (amount <= 0)
+        if (string.IsNullOrEmpty(selectedPriceId))
         {
-            errorMessage = "Amount must be greater than 0";
+            errorMessage = "Please select a price";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(productName))
+        if (quantity <= 0)
         {
-            errorMessage = "Product name is required";
+            errorMessage = "Quantity must be greater than 0";
             return;
         }
 
@@ -85,15 +168,15 @@
 
         try
         {
-            // Redirect URLs
-            var baseUrl = Navigation.BaseUri.TrimEnd('/');
-            var successUrl = $"{baseUrl}/payment-success";
-            var cancelUrl = $"{baseUrl}/payment-cancel";
+            // Get base URL from configuration (ngrok or localhost)
+            var baseUrl = UrlConfigurationService.GetBaseUrl();
+            var successUrl = UrlConfigurationService.GetStripeSuccessUrl();
+            var cancelUrl = UrlConfigurationService.GetStripeCancelUrl();
 
-            // Create Stripe session
+            // Create Stripe session using Price ID
             var sessionId = await StripeService.CreateCheckoutSessionAsync(
-                amount,
-                productName,
+                selectedPriceId,
+                quantity,
                 successUrl,
                 cancelUrl
             );
@@ -103,9 +186,9 @@
                 throw new Exception("Failed to create Stripe session");
             }
 
-            // Redirect directly to Stripe Checkout
+            // Redirect to Stripe Checkout
             var checkoutUrl = $"https://checkout.stripe.com/pay/{sessionId}";
-            Navigation.NavigateTo(checkoutUrl, true);
+            Navigation.NavigateTo(checkoutUrl, forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -114,4 +197,3 @@
         }
     }
 }
-

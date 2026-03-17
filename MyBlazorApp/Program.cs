@@ -20,7 +20,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<StripeService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PaymentService>();
-builder.Services.AddSingleton<SessionService>(); // Singleton para mantener sesiones entre circuitos
+builder.Services.AddScoped<UrlConfigurationService>(); // For dynamic URL configuration
+builder.Services.AddSingleton<SessionService>(); // Singleton to maintain sessions across circuits
 
 // Add distributed cache for sessions
 builder.Services.AddDistributedMemoryCache();

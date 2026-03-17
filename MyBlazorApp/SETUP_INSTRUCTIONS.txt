@@ -1,0 +1,346 @@
+===============================================
+    MYBLAZORAPP - SETUP & TESTING GUIDE
+    Stripe Integration con ngrok
+===============================================
+
+REQUISITOS PREVIOS:
+- .NET 8 SDK instalado
+- MySQL corriendo en localhost:3306 (usuario: root, contraseña: root)
+- ngrok instalado (https://ngrok.com/download)
+- Navegador web (Chrome, Firefox, etc.)
+
+===============================================
+PASO 1: ABRIR TERMINAL 1 (para ngrok)
+===============================================
+
+1. Presiona Windows + R
+2. Escribe: powershell
+3. Presiona Enter
+
+Terminal 1 debe mostrar:
+PS C:\Users\djlei>
+
+===============================================
+PASO 2: INICIAR NGROK EN TERMINAL 1
+===============================================
+
+En Terminal 1, escribe y presiona Enter:
+
+ngrok http https://localhost:7184
+
+IMPORTANTE: Espera a que veas la salida:
+Forwarding    https://XXXXXXXXXXXXX.ngrok-free.app -> https://localhost:7184
+
+Copia la URL de ngrok (la que dice https://XXXXXXXXXXXXX.ngrok-free.app)
+
+⚠️ NO CIERRES ESTA TERMINAL - Debe seguir corriendo
+
+===============================================
+PASO 3: ABRIR TERMINAL 2 (para la app)
+===============================================
+
+1. Presiona Windows + R nuevamente
+2. Escribe: powershell
+3. Presiona Enter
+
+Ahora tienes 2 terminales abiertas.
+
+===============================================
+PASO 4: NAVEGAR A LA CARPETA DEL PROYECTO (Terminal 2)
+===============================================
+
+En Terminal 2, escribe y presiona Enter:
+
+cd C:\Users\djlei\source\repos\MyBlazorApp\MyBlazorApp
+
+Debes ver:
+PS C:\Users\djlei\source\repos\MyBlazorApp\MyBlazorApp>
+
+===============================================
+PASO 5: ACTUALIZAR CONFIGURACION (Terminal 2)
+===============================================
+
+En Terminal 2, escribe y presiona Enter:
+
+notepad appsettings.json
+
+Se abrirá Notepad. Busca esta sección:
+
+"AppSettings": {
+    "Port": 5091,
+    "Ngrok": {
+      "Enabled": false,
+      "Url": ""
+    }
+  }
+
+Cámbialo a (reemplaza XXXXXXXXXXXXX con tu URL real de ngrok del PASO 2):
+
+"AppSettings": {
+    "Port": 7184,
+    "Ngrok": {
+      "Enabled": true,
+      "Url": "https://XXXXXXXXXXXXX.ngrok-free.app"
+    }
+  }
+
+EJEMPLO REAL:
+"AppSettings": {
+    "Port": 7184,
+    "Ngrok": {
+      "Enabled": true,
+      "Url": "https://391a-212-15-81-157.ngrok-free.app"
+    }
+  }
+
+Presiona Ctrl + S para guardar
+Cierra Notepad (Ctrl + Q o botón X)
+
+===============================================
+PASO 6: COMPILAR LA APLICACION (Terminal 2)
+===============================================
+
+En Terminal 2, escribe y presiona Enter:
+
+dotnet build
+
+Espera a que termine. Debes ver:
+Build succeeded.
+
+===============================================
+PASO 7: EJECUTAR LA APLICACION (Terminal 2)
+===============================================
+
+En Terminal 2, escribe y presiona Enter:
+
+dotnet run
+
+Espera 10-15 segundos. Cuando veas:
+
+info: Microsoft.AspNetCore.Server.Kestrel[21]
+      Listening on https://localhost:7184
+      Listening on http://localhost:7184
+
+La aplicación está lista.
+
+⚠️ NO CIERRES ESTA TERMINAL - Debe seguir corriendo
+
+===============================================
+PASO 8: ABRIR EL NAVEGADOR
+===============================================
+
+1. Abre tu navegador (Chrome, Firefox, etc.)
+2. En la barra de direcciones escribe tu URL de ngrok (del PASO 2):
+
+https://391a-212-15-81-157.ngrok-free.app
+
+Reemplaza "391a-212-15-81-157" con tu URL real de ngrok
+
+3. Presiona Enter
+
+Deberías ver la página de login.
+
+===============================================
+PASO 9: HACER LOGIN
+===============================================
+
+Ingresa estas credenciales:
+
+Usuario: admin
+Contraseña: admin123
+
+Presiona el botón "Login"
+
+Deberías ver el dashboard de la aplicación.
+
+===============================================
+PASO 10: NAVEGAR A "NEW PAYMENT"
+===============================================
+
+En la barra lateral izquierda, verás un menú.
+Haz click en: "New Payment"
+
+Deberías ver el formulario de pago con:
+- Select Product (dropdown)
+- Select Price (dropdown)
+- Quantity (número)
+- Proceed to Payment (botón)
+
+===============================================
+PASO 11: RELLENAR EL FORMULARIO DE PAGO
+===============================================
+
+1. Select Product: Abre el dropdown y selecciona un producto (ej: "Test Product")
+2. Select Price: Selecciona un precio disponible
+3. Quantity: Asegúrate que esté en 1 o más
+4. Haz click en: "Proceed to Payment"
+
+===============================================
+PASO 12: COMPLETAR PAGO EN STRIPE CHECKOUT
+===============================================
+
+Serás redirigido a Stripe Checkout.
+
+Usa esta tarjeta de prueba:
+
+Número de tarjeta: 4242 4242 4242 4242
+Fecha expiración: 12/25 (o cualquier fecha futura)
+CVC: 123 (o cualquier número de 3 dígitos)
+Nombre: Test User
+Email: test@example.com
+País: United States (o tu país)
+
+Presiona "Pay" o "Complete Payment"
+
+===============================================
+PASO 13: VERIFICAR RESULTADO
+===============================================
+
+RESULTADO EXITOSO (✅):
+- Serás redirigido a: https://XXXX.ngrok-free.app/payment-success
+- Verás un mensaje de confirmación
+- El pago aparecerá en tu dashboard
+
+RESULTADO CON ERROR (❌):
+- Presiona F12 en el navegador
+- Ve a la pestaña "Console"
+- Busca mensajes en rojo
+- Anota el error exacto
+- Comparte conmigo el error
+
+===============================================
+TROUBLESHOOTING - ERRORES COMUNES
+===============================================
+
+ERROR: "Connection refused"
+SOLUCIÓN:
+- Verifica que ngrok esté corriendo en Terminal 1
+- Verifica que la app esté corriendo en Terminal 2
+- Si no, repite PASO 2 y PASO 7
+
+ERROR: "Page not found" o "Cannot GET /"
+SOLUCIÓN:
+- Verifica que la URL de ngrok en appsettings.json sea correcta
+- Verifica que Ngrok:Enabled sea true (no false)
+- Guarda appsettings.json
+- Detén Terminal 2 (Ctrl + C)
+- Ejecuta nuevamente: dotnet run
+- Espera 10-15 segundos
+
+ERROR: "SSL certificate problem"
+SOLUCIÓN:
+- En Terminal 1, DETÉN ngrok (Ctrl + C)
+- Corre ngrok con este comando:
+  ngrok http https://localhost:7184
+- Copia la nueva URL de ngrok
+- Actualiza appsettings.json con la nueva URL
+
+ERROR: "Port already in use"
+SOLUCIÓN:
+- Verifica que no tengas otra instancia de la app corriendo
+- En Terminal 2, presiona Ctrl + C
+- Espera 5 segundos
+- Ejecuta: dotnet run
+
+ERROR en Stripe: "No prices available for this product"
+SOLUCIÓN:
+- Verifica que tengas precios creados en Stripe Dashboard
+- Ve a Stripe Dashboard → Products
+- Asegúrate que el producto tenga al menos un Price creado
+- Si no tiene, crea un precio nuevo
+
+===============================================
+MONITOREO EN TIEMPO REAL
+===============================================
+
+VER LOGS DE NGROK:
+1. Abre en navegador: http://127.0.0.1:4040
+2. Verás todas las requests que pasan por ngrok
+3. Útil para debuggear problemas
+
+VER LOGS DE LA APP:
+En Terminal 2, verás todos los logs mientras la app está corriendo.
+Busca mensajes en rojo para errores.
+
+===============================================
+INFORMACIÓN DE CONFIGURACION
+===============================================
+
+PUERTO DE LA APP:
+Configurado: 7184 (en appsettings.json → Port)
+
+NGROK URL:
+Tu URL actual: https://391a-212-15-81-157.ngrok-free.app
+(Cambia cada vez que reinicies ngrok)
+
+CREDENCIALES DE LOGIN:
+Usuario: admin
+Contraseña: admin123
+
+CREDENCIALES DE STRIPE:
+Modo: Test (no real)
+Tarjeta de prueba: 4242 4242 4242 4242
+
+BASE DE DATOS:
+Host: localhost
+Puerto: 3306
+Usuario: root
+Contraseña: root
+Base de datos: MyBlazorAppDb
+
+===============================================
+FLUJO COMPLETO DE PRUEBA
+===============================================
+
+1. Terminal 1: ngrok http https://localhost:7184
+2. Terminal 2: cd C:\Users\djlei\source\repos\MyBlazorApp\MyBlazorApp
+3. Terminal 2: dotnet build
+4. Terminal 2: dotnet run
+5. Navegador: https://XXXXX.ngrok-free.app
+6. Login: admin / admin123
+7. Click: New Payment
+8. Formulario: Selecciona producto, precio, cantidad
+9. Click: Proceed to Payment
+10. Stripe: Usa tarjeta 4242 4242 4242 4242
+11. Click: Pay
+12. Resultado: Deberías ver página de éxito
+
+===============================================
+SI TODO FUNCIONA CORRECTAMENTE
+===============================================
+
+✅ Viste la página de login
+✅ Login funcionó
+✅ Viste el formulario de pago
+✅ Se cargó la lista de productos
+✅ Se cargó la lista de precios
+✅ Fuiste redirigido a Stripe Checkout
+✅ Completaste el pago con la tarjeta de prueba
+✅ Viste la página de confirmación (payment-success)
+✅ El pago se guardó en la base de datos
+
+¡FELICIDADES! La integración con Stripe funciona perfectamente.
+
+===============================================
+NOTAS IMPORTANTES
+===============================================
+
+- ngrok genera una URL diferente cada vez que lo reinicies
+- Debes actualizar appsettings.json con la nueva URL cada vez
+- NO debes cerrar Terminal 1 ni Terminal 2 mientras estés probando
+- Si cierras una terminal, debes reiniciar desde ese paso
+- Para parar todo, presiona Ctrl + C en ambas terminales
+- ngrok es solo para desarrollo local, en producción usarás tu dominio real
+
+===============================================
+CONTACTO & AYUDA
+===============================================
+
+Si algo no funciona:
+1. Anota el paso exacto donde falla
+2. Copia el mensaje de error exacto (de Console o Terminal)
+3. Describe qué esperas ver vs qué ves
+
+¡Estoy para ayudarte!
+
+===============================================
