@@ -1,27 +1,19 @@
 @inherits LayoutComponentBase
 @using MyBlazorApp.Components
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>World Cup Sweepstakes - Indiana Soccer</title>
-    <link href="bootstrap/bootstrap.min.css" rel="stylesheet" />
+<PageTitle>World Cup Sweepstakes - Indiana Soccer</PageTitle>
+
+<HeadContent>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-    <link href="app.css" rel="stylesheet" />
-    <link href="raffle-styles.css" rel="stylesheet" />
-</head>
-<body>
+    <link href="css/raffle-styles.css" rel="stylesheet" />
+</HeadContent>
+
+<div class="raffle-page">
     <RaffleNavbar />
-    
-    <main>
+
+    <main class="raffle-main">
         @Body
     </main>
-    
-    <RaffleFooter />
 
-    <script src="bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="app.js"></script>
-</body>
-</html>
+    <RaffleFooter />
+</div>

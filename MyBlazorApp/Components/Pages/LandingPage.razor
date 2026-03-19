@@ -2,6 +2,8 @@
 @layout RaffleLayout
 @using MyBlazorApp.Components
 
+<PageTitle>World Cup Sweepstakes - Indiana Soccer</PageTitle>
+
 <div class="landing-page">
     <!-- Hero Section -->
     <section class="hero-section">
@@ -13,14 +15,13 @@
                 </div>
 
                 <!-- Main Headline -->
-                <h1 class="hero-title mb-3">
-                    ENTER THE WORLD<br />
-                    <span class="highlight">CUP SWEEPSTAKES</span>
+                <h1 class="hero-title mb-4">
+                    <span class="enter-text">ENTER THE</span> <span class="world-cup-text">WORLD<br />CUP SWEEPSTAKES</span>
                 </h1>
 
                 <!-- Subtitle -->
                 <p class="hero-subtitle text-muted mb-5">
-                    Your chance to win World Cup tickets is here! Enter any of our three sweepstakes for a 
+                    Your chance to win World Cup tickets is here! Enter any of our three sweepstakes for a<br class="d-none d-md-block" />
                     chance to win an exclusive experience including tickets, parties, accommodation, and more.
                 </p>
             </div>
@@ -30,35 +31,35 @@
     <!-- Raffles Section -->
     <section class="raffles-section py-5">
         <div class="container-fluid px-4">
-            <div class="row g-4">
+            <div class="row g-4 justify-content-center">
                 <!-- Raffle 1: Final Match -->
-                <div class="col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                     <RaffleCard 
                         RaffleId="1"
-                        Title="FINAL MATCH:<br />THE ULTIMATE SHOWDOWN"
+                        Title="FINAL MATCH: THE ULTIMATE SHOWDOWN"
                         ImageUrl="/images/raffle-final-match.jpg"
                         Price="50"
                         Benefits="@GetFinalMatchBenefits()" />
                 </div>
 
                 <!-- Raffle 2: Semi-Final 1 -->
-                <div class="col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                     <RaffleCard 
                         RaffleId="2"
-                        Title="SEMI-FINAL 1:<br />CLASH OF TITANS"
+                        Title="SEMI-FINAL 1: CLASH OF TITANS"
                         ImageUrl="/images/raffle-semifinal-1.jpg"
                         Price="35"
-                        Benefits="@GetSemiFinalssBenefits()" />
+                        Benefits="@GetSemiFinalsBenefits()" />
                 </div>
 
                 <!-- Raffle 3: Semi-Final 2 -->
-                <div class="col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                     <RaffleCard 
                         RaffleId="3"
-                        Title="SEMI-FINAL 2:<br />ROAD TO GLORY"
+                        Title="SEMI-FINAL 2: ROAD TO GLORY"
                         ImageUrl="/images/raffle-semifinal-2.jpg"
                         Price="35"
-                        Benefits="@GetSemiFinalssBenefits()" />
+                        Benefits="@GetSemiFinalsBenefits()" />
                 </div>
             </div>
         </div>
@@ -78,7 +79,7 @@
         };
     }
 
-    private List<RaffleCard.BenefitItem> GetSemiFinalssBenefits()
+    private List<RaffleCard.BenefitItem> GetSemiFinalsBenefits()
     {
         return new()
         {
