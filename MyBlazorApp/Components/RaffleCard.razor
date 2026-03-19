@@ -1,0 +1,64 @@
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Navigation
+
+<div class="raffle-card">
+    <!-- Card Image -->
+    <div class="raffle-card-image">
+        <img src="@ImageUrl" alt="@Title" class="img-fluid" />
+        <div class="raffle-card-overlay">
+            <h3 class="raffle-card-title">@Title</h3>
+        </div>
+    </div>
+
+    <!-- Card Body -->
+    <div class="raffle-card-body">
+        <!-- Benefits List -->
+        <div class="benefits-list">
+            @foreach (var benefit in Benefits)
+            {
+                <div class="benefit-item">
+                    <span class="benefit-icon">
+                        <i class="@benefit.Icon"></i>
+                    </span>
+                    <span class="benefit-text">@benefit.Text</span>
+                </div>
+            }
+        </div>
+
+        <!-- Price and CTA Button -->
+        <div class="raffle-card-footer">
+            <button class="btn btn-navy btn-block" @onclick="HandleBuyClick">
+                <i class="fas fa-shopping-cart me-2"></i>
+                BUY TICKETS — @Price.ToString("C0")
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int RaffleId { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string ImageUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public decimal Price { get; set; }
+
+    [Parameter]
+    public List<BenefitItem> Benefits { get; set; } = new();
+
+    private void HandleBuyClick()
+    {
+        Navigation.NavigateTo($"/raffle/{RaffleId}/checkout");
+    }
+
+    public class BenefitItem
+    {
+        public string Icon { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+    }
+}

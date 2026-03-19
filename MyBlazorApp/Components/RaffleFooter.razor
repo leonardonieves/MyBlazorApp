@@ -1,0 +1,103 @@
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager Navigation
+
+<footer class="bg-light py-5">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Left Section: Logo and Description -->
+            <div class="col-md-6 col-lg-4 mb-4 mb-md-0">
+                <img src="/images/indiana-soccer-logo.svg" alt="Indiana Soccer" class="footer-logo mb-3" />
+                
+                <p class="footer-description text-muted">
+                    The premier destination for soccer raffles. Win signed jerseys, match tickets, 
+                    and exclusive experiences while supporting youth academies.
+                </p>
+
+                <!-- Social Media Icons -->
+                <div class="social-icons mt-3">
+                    <a href="https://facebook.com/indianasoccer" target="_blank" class="social-link me-2" title="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="https://twitter.com/indianasoccer" target="_blank" class="social-link me-2" title="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="https://instagram.com/indianasoccer" target="_blank" class="social-link" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Section: Newsletter -->
+            <div class="col-md-6 col-lg-4 ms-lg-auto">
+                <h5 class="footer-heading text-navy mb-3">STAY IN THE LOOP</h5>
+                
+                <p class="text-muted small mb-3">
+                    Subscribe for new raffle alerts and exclusive offers.
+                </p>
+
+                <form @onsubmit="HandleNewsletterSubscribe">
+                    <div class="input-group mb-3">
+                        <input 
+                            type="email" 
+                            class="form-control" 
+                            placeholder="Enter your email"
+                            @bind="newsletterEmail"
+                            required />
+                    </div>
+                    
+                    <button type="submit" class="btn btn-navy w-100">
+                        <span>SUBSCRIBE</span>
+                        <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </form>
+
+                @if (!string.IsNullOrEmpty(subscriptionMessage))
+                {
+                    <div class="alert alert-info mt-2 mb-0" role="alert">
+                        @subscriptionMessage
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Bottom Section: Copyright -->
+        <hr class="my-4" />
+        
+        <div class="row">
+            <div class="col-12">
+                <p class="text-muted text-center mb-0 small">
+                    &copy; 2024 Indiana Soccer. All rights reserved. Not affiliated with FIFA.
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+@code {
+    private string newsletterEmail = string.Empty;
+    private string subscriptionMessage = string.Empty;
+
+    private async Task HandleNewsletterSubscribe()
+    {
+        if (string.IsNullOrWhiteSpace(newsletterEmail))
+        {
+            subscriptionMessage = "Please enter a valid email address.";
+            return;
+        }
+
+        try
+        {
+            // TODO: Call API to subscribe user to newsletter
+            subscriptionMessage = "Thank you for subscribing!";
+            newsletterEmail = string.Empty;
+            
+            // Clear message after 3 seconds
+            await Task.Delay(3000);
+            subscriptionMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            subscriptionMessage = "Subscription failed. Please try again later.";
+        }
+    }
+}

@@ -1,0 +1,92 @@
+@page "/"
+@layout RaffleLayout
+@using MyBlazorApp.Components
+
+<div class="landing-page">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container-fluid">
+            <div class="hero-content text-center">
+                <!-- Limited Time Event Badge -->
+                <div class="limited-time-badge mb-3">
+                    <span class="badge-text">LIMITED TIME EVENT</span>
+                </div>
+
+                <!-- Main Headline -->
+                <h1 class="hero-title mb-3">
+                    ENTER THE WORLD<br />
+                    <span class="highlight">CUP SWEEPSTAKES</span>
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="hero-subtitle text-muted mb-5">
+                    Your chance to win World Cup tickets is here! Enter any of our three sweepstakes for a 
+                    chance to win an exclusive experience including tickets, parties, accommodation, and more.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Raffles Section -->
+    <section class="raffles-section py-5">
+        <div class="container-fluid px-4">
+            <div class="row g-4">
+                <!-- Raffle 1: Final Match -->
+                <div class="col-lg-4">
+                    <RaffleCard 
+                        RaffleId="1"
+                        Title="FINAL MATCH:<br />THE ULTIMATE SHOWDOWN"
+                        ImageUrl="/images/raffle-final-match.jpg"
+                        Price="50"
+                        Benefits="@GetFinalMatchBenefits()" />
+                </div>
+
+                <!-- Raffle 2: Semi-Final 1 -->
+                <div class="col-lg-4">
+                    <RaffleCard 
+                        RaffleId="2"
+                        Title="SEMI-FINAL 1:<br />CLASH OF TITANS"
+                        ImageUrl="/images/raffle-semifinal-1.jpg"
+                        Price="35"
+                        Benefits="@GetSemiFinalssBenefits()" />
+                </div>
+
+                <!-- Raffle 3: Semi-Final 2 -->
+                <div class="col-lg-4">
+                    <RaffleCard 
+                        RaffleId="3"
+                        Title="SEMI-FINAL 2:<br />ROAD TO GLORY"
+                        ImageUrl="/images/raffle-semifinal-2.jpg"
+                        Price="35"
+                        Benefits="@GetSemiFinalssBenefits()" />
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+@code {
+    private List<RaffleCard.BenefitItem> GetFinalMatchBenefits()
+    {
+        return new()
+        {
+            new() { Icon = "fas fa-ticket-alt", Text = "4 tickets to the game" },
+            new() { Icon = "fas fa-cocktail", Text = "Pre-game VIP party access" },
+            new() { Icon = "fas fa-music", Text = "Exclusive post-game celebration" },
+            new() { Icon = "fas fa-hotel", Text = "Premium hotel accommodation (3 nights)" },
+            new() { Icon = "fas fa-plane", Text = "Round-trip flights & local transportation" }
+        };
+    }
+
+    private List<RaffleCard.BenefitItem> GetSemiFinalssBenefits()
+    {
+        return new()
+        {
+            new() { Icon = "fas fa-ticket-alt", Text = "4 tickets to the game" },
+            new() { Icon = "fas fa-cocktail", Text = "Pre-game VIP party access" },
+            new() { Icon = "fas fa-music", Text = "Exclusive post-game celebration" },
+            new() { Icon = "fas fa-hotel", Text = "Premium hotel accommodation (3 nights)" },
+            new() { Icon = "fas fa-plane", Text = "Round-trip flights & local transportation" }
+        };
+    }
+}
