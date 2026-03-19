@@ -156,6 +156,71 @@ public class StripeService
     }
 
     /// <summary>
+    /// Create a Stripe Checkout session for raffle tickets with metadata
+    /// </summary>
+    public async Task<string> CreateRaffleCheckoutSessionAsync(
+        int raffleId,
+        int quantity,
+        decimal ticketPrice,
+        string raffleName,
+        string buyerEmail,
+        string? buyerName,
+        string successUrl,
+        string cancelUrl)
+    {
+        try
+        {
+            var options = new SessionCreateOptions
+            {
+                PaymentMethodTypes = new List<string> { "card" },
+                LineItems = new List<SessionLineItemOptions>
+                {
+                    new SessionLineItemOptions
+                    {
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            UnitAmount = (long)(ticketPrice * 100), // Convert to cents
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = $"{raffleName} - Raffle Ticket",
+                                Description = $"Ticket(s) for {raffleName}",
+                            },
+                        },
+                        Quantity = quantity,
+                    },
+                },
+                Mode = "payment",
+                SuccessUrl = successUrl,
+                CancelUrl = cancelUrl,
+                CustomerEmail = buyerEmail,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "raffle_id", raffleId.ToString() },
+                    { "quantity", quantity.ToString() },
+                    { "buyer_email", buyerEmail },
+                    { "buyer_name", buyerName ?? "" }
+                }
+            };
+
+            var service = new Stripe.Checkout.SessionService();
+            var session = await service.CreateAsync(options);
+
+            Console.WriteLine($"Raffle Session Created: {session.Id}");
+            Console.WriteLine($"Raffle ID: {raffleId}, Quantity: {quantity}");
+            Console.WriteLine($"Session URL: {session.Url}");
+            Console.WriteLine($"================================");
+
+            return session.Url;
+        }
+        catch (StripeException ex)
+        {
+            Console.WriteLine($"STRIPE ERROR: {ex.Message}");
+            throw new InvalidOperationException($"Error creating raffle checkout session: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
     /// Retrieve a Stripe session by ID
     /// </summary>
     public async Task<Session> GetSessionAsync(string sessionId)

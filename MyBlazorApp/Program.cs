@@ -24,6 +24,7 @@ builder.Services.AddScoped<StripeService>();
 builder.Services.AddScoped<StripeWebhookService>(); // Webhook service
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<RaffleService>(); // Raffle service
 builder.Services.AddScoped<UrlConfigurationService>(); // For dynamic URL configuration
 builder.Services.AddSingleton<SessionService>(); // Singleton to maintain sessions across circuits
 

@@ -13,15 +13,18 @@ public class StripeWebhookService
     private readonly IConfiguration _configuration;
     private readonly AppDbContext _context;
     private readonly ILogger<StripeWebhookService> _logger;
+    private readonly RaffleService _raffleService;
 
     public StripeWebhookService(
         IConfiguration configuration,
         AppDbContext context,
-        ILogger<StripeWebhookService> logger)
+        ILogger<StripeWebhookService> logger,
+        RaffleService raffleService)
     {
         _configuration = configuration;
         _context = context;
         _logger = logger;
+        _raffleService = raffleService;
     }
 
     /// <summary>
@@ -124,25 +127,75 @@ public class StripeWebhookService
             var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
             _logger.LogInformation($"Checkout session completed: {session.Id}");
 
-            var payment = await _context.Payments
-                .FirstOrDefaultAsync(p => p.StripeSessionId == session.Id);
-
-            if (payment != null)
+            // Check metadata for raffle information
+            var metadata = session.Metadata;
+            if (metadata != null && metadata.ContainsKey("raffle_id"))
             {
-                payment.Status = "succeeded";
-                payment.StripePaymentIntentId = session.PaymentIntentId;
-                payment.UpdatedAt = DateTime.UtcNow;
-                payment.CompletedAt = DateTime.UtcNow;
+                // This is a raffle ticket purchase
+                await HandleRaffleTicketPurchaseAsync(session, metadata);
+            }
+            else
+            {
+                // Regular payment
+                var payment = await _context.Payments
+                    .FirstOrDefaultAsync(p => p.StripeSessionId == session.Id);
 
-                _context.Payments.Update(payment);
-                await _context.SaveChangesAsync();
+                if (payment != null)
+                {
+                    payment.Status = "succeeded";
+                    payment.StripePaymentIntentId = session.PaymentIntentId;
+                    payment.UpdatedAt = DateTime.UtcNow;
+                    payment.CompletedAt = DateTime.UtcNow;
 
-                _logger.LogInformation($"Payment {payment.Id} marked as succeeded");
+                    _context.Payments.Update(payment);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation($"Payment {payment.Id} marked as succeeded");
+                }
             }
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error handling checkout.session.completed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handle raffle ticket purchase from Stripe webhook
+    /// </summary>
+    private async Task HandleRaffleTicketPurchaseAsync(Stripe.Checkout.Session session, IDictionary<string, string> metadata)
+    {
+        try
+        {
+            var raffleId = int.Parse(metadata["raffle_id"]);
+            var quantity = metadata.ContainsKey("quantity") ? int.Parse(metadata["quantity"]) : 1;
+            var buyerEmail = metadata.ContainsKey("buyer_email") ? metadata["buyer_email"] : (session.CustomerDetails?.Email ?? "");
+            var buyerName = metadata.ContainsKey("buyer_name") ? metadata["buyer_name"] : (session.CustomerDetails?.Name ?? "");
+
+            _logger.LogInformation($"Creating {quantity} raffle tickets for raffle {raffleId}, buyer: {buyerEmail}");
+
+            // Create tickets
+            for (int i = 0; i < quantity; i++)
+            {
+                var ticket = new Ticket
+                {
+                    RaffleId = raffleId,
+                    BuyerEmail = buyerEmail,
+                    BuyerName = buyerName,
+                    StripePaymentIntentId = session.PaymentIntentId,
+                    StripeSessionId = session.Id,
+                    AmountPaid = (decimal)session.AmountTotal / 100, // Convert from cents
+                    Status = "confirmed"
+                };
+
+                await _raffleService.CreateTicketAsync(ticket);
+            }
+
+            _logger.LogInformation($"Successfully created {quantity} tickets for raffle {raffleId}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error handling raffle ticket purchase: {ex.Message}");
         }
     }
 
