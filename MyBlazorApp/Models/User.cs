@@ -18,4 +18,8 @@ public class User
     public Role Role { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; } = true;
+
+    // Stripe integration
+    public string? StripeCustomerId { get; set; }
+    public DateTime? StripeCustomerCreatedAt { get; set; }
 }

@@ -1,75 +1,119 @@
 @page "/register"
-@rendermode InteractiveServer
-@layout LoginLayout
+@layout RaffleLayout
 @using MyBlazorApp.Services
+@using Microsoft.AspNetCore.Components
 @inject AuthService AuthService
+@inject AppAuthStateProvider AuthState
 @inject NavigationManager Navigation
 
-<div class="container-fluid min-vh-100 d-flex align-items-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-    <div class="container">
+<PageTitle>Register - World Cup Sweepstakes</PageTitle>
+
+<div class="register-page">
+    <div class="container py-5">
         <div class="row justify-content-center">
-            <div class="col-md-5">
-                <div class="card shadow-lg" style="border: none; border-radius: 15px;">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-lg border-0" style="border-radius: 15px;">
                     <div class="card-body p-5">
-                        <h2 class="text-center mb-4" style="color: #667eea;">
-                            <i class="bi bi-person-plus"></i> Create Account
-                        </h2>
+                        <div class="text-center mb-4">
+                            <h2 class="mb-2" style="color: var(--navy-dark); font-weight: 700;">Create Account</h2>
+                            <p class="text-muted">Join to participate in our sweepstakes</p>
+                        </div>
 
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
-                            <div class="alert alert-danger" role="alert">
-                                @errorMessage
+                            <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <div>@errorMessage</div>
                             </div>
                         }
 
                         @if (!string.IsNullOrEmpty(successMessage))
                         {
-                            <div class="alert alert-success" role="alert">
-                                @successMessage
-                                <NavLink href="/login">Go to Login</NavLink>
+                            <div class="alert alert-success d-flex align-items-center" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <div>
+                                    @successMessage
+                                    <br />
+                                    <small>Redirecting...</small>
+                                </div>
                             </div>
                         }
 
-                        <form @onsubmit="HandleRegister">
+                        <EditForm Model="@registerModel" OnValidSubmit="HandleRegister" FormName="registerForm">
                             <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" @bind="username" required />
+                                <label for="username" class="form-label fw-bold">
+                                    <i class="fas fa-user me-1"></i> Username
+                                </label>
+                                <InputText class="form-control form-control-lg" 
+                                           id="username" 
+                                           @bind-Value="registerModel.Username" 
+                                           placeholder="Choose a username"
+                                           disabled="@isLoading" />
                             </div>
 
                             <div class="mb-3">
-                                <label for="email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="email" @bind="email" required />
+                                <label for="email" class="form-label fw-bold">
+                                    <i class="fas fa-envelope me-1"></i> Email
+                                </label>
+                                <InputText class="form-control form-control-lg" 
+                                           id="email" 
+                                           @bind-Value="registerModel.Email" 
+                                           placeholder="your.email@example.com"
+                                           disabled="@isLoading" />
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> We'll create a Stripe account for secure payments
+                                </small>
                             </div>
 
                             <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" @bind="password" required />
+                                <label for="password" class="form-label fw-bold">
+                                    <i class="fas fa-lock me-1"></i> Password
+                                </label>
+                                <InputText type="password" 
+                                           class="form-control form-control-lg" 
+                                           id="password" 
+                                           @bind-Value="registerModel.Password" 
+                                           placeholder="Min. 6 characters"
+                                           disabled="@isLoading" />
                             </div>
 
-                            <div class="mb-3">
-                                <label for="confirmPassword" class="form-label">Confirm Password</label>
-                                <input type="password" class="form-control" id="confirmPassword" @bind="confirmPassword" required />
+                            <div class="mb-4">
+                                <label for="confirmPassword" class="form-label fw-bold">
+                                    <i class="fas fa-lock me-1"></i> Confirm Password
+                                </label>
+                                <InputText type="password" 
+                                           class="form-control form-control-lg" 
+                                           id="confirmPassword" 
+                                           @bind-Value="registerModel.ConfirmPassword" 
+                                           placeholder="Re-enter password"
+                                           disabled="@isLoading" />
                             </div>
 
-                            <button type="submit" class="btn w-100 mb-3" style="background: #667eea; color: white; border: none; padding: 10px; font-weight: bold;" disabled="@isLoading">
+                            <button type="submit" 
+                                    class="btn btn-lg w-100 mb-3 text-white fw-bold" 
+                                    style="background: var(--navy-dark); border: none; padding: 12px;"
+                                    disabled="@isLoading">
                                 @if (isLoading)
                                 {
-                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
                                     <span>Creating Account...</span>
                                 }
                                 else
                                 {
-                                    <span>Register</span>
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    <span>Create Account</span>
                                 }
                             </button>
-                        </form>
+                        </EditForm>
 
-                        <hr />
+                        <hr class="my-4" />
 
-                        <p class="text-center text-muted">Already have an account?</p>
-                        <NavLink href="/login" class="btn btn-outline-primary w-100">
-                            Login
-                        </NavLink>
+                        <div class="text-center">
+                            <p class="text-muted mb-2">Already have an account?</p>
+                            <a href="@GetLoginUrl()" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-sign-in-alt me-2"></i> Login
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -78,13 +122,42 @@
 </div>
 
 @code {
-    private string username = "";
-    private string email = "";
-    private string password = "";
-    private string confirmPassword = "";
+    [SupplyParameterFromForm]
+    private RegisterModel registerModel { get; set; } = new();
+
     private string errorMessage = "";
     private string successMessage = "";
     private bool isLoading = false;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    public class RegisterModel
+    {
+        public string Username { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+
+    protected override void OnInitialized()
+    {
+        // Si ya está logueado, redirigir
+        if (AuthState.IsAuthenticated)
+        {
+            var redirectUrl = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/";
+            Navigation.NavigateTo(redirectUrl);
+        }
+    }
+
+    private string GetLoginUrl()
+    {
+        if (!string.IsNullOrEmpty(ReturnUrl))
+        {
+            return $"/login?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+        }
+        return "/login";
+    }
 
     private async Task HandleRegister()
     {
@@ -92,50 +165,59 @@
         successMessage = "";
 
         // Validations
-        if (string.IsNullOrWhiteSpace(username))
+        if (string.IsNullOrWhiteSpace(registerModel.Username))
         {
             errorMessage = "Username is required";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(email))
+        if (string.IsNullOrWhiteSpace(registerModel.Email))
         {
             errorMessage = "Email is required";
             return;
         }
 
-        if (password != confirmPassword)
+        if (registerModel.Password != registerModel.ConfirmPassword)
         {
             errorMessage = "Passwords do not match";
             return;
         }
 
-        if (password.Length < 6)
+        if (registerModel.Password.Length < 6)
         {
             errorMessage = "Password must be at least 6 characters";
             return;
         }
 
         isLoading = true;
+        errorMessage = "";
 
         try
         {
-            var result = await AuthService.RegisterAsync(username, email, password, "Basic");
+            var result = await AuthService.RegisterAsync(
+                registerModel.Username, 
+                registerModel.Email, 
+                registerModel.Password, 
+                "Basic");
 
-            if (result.success)
+            if (result.success && result.user != null)
             {
-                successMessage = "Account created successfully! Redirecting to login...";
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/login");
+                // Set auth state globally
+                AuthState.SetUser(result.user);
+
+                // Redirigir a returnUrl o home (sin forceLoad para mantener el estado)
+                var redirectUrl = !string.IsNullOrEmpty(ReturnUrl) ? ReturnUrl : "/";
+                Navigation.NavigateTo(redirectUrl);
             }
             else
             {
-                errorMessage = result.message;
+                errorMessage = result.message ?? "Registration failed";
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"Error: {ex.Message}";
+            Console.WriteLine($"Registration error: {ex}");
         }
         finally
         {

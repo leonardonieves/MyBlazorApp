@@ -1,0 +1,201 @@
+﻿@page "/"
+@inject ApiService Api
+@inject AuthStateService AuthState
+@implements IDisposable
+
+<PageTitle>World Cup Sweepstakes</PageTitle>
+
+<div class="landing-page">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-content text-center">
+                <div class="limited-time-badge mb-3">
+                    <span class="badge-text">LIMITED TIME EVENT</span>
+                </div>
+
+                <h1 class="hero-title mb-4">
+                    <span class="enter-text">ENTER THE</span>
+                    <span class="world-cup-text">WORLD CUP SWEEPSTAKES</span>
+                </h1>
+
+                <p class="hero-subtitle text-muted mb-5">
+                    Your chance to win World Cup tickets is here! Enter any of our sweepstakes for a
+                    chance to win an exclusive experience including tickets, parties, accommodation, and more.
+                </p>
+
+                @if (!string.IsNullOrEmpty(syncMessage))
+                {
+                    <div class="alert @(syncSuccess ? "alert-success" : "alert-danger") d-inline-block">
+                        @syncMessage
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Admin Panel (only for admins) -->
+    @if (AuthState.IsAdmin)
+    {
+        <section class="admin-panel py-3 bg-dark">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-white">
+                        <i class="fas fa-user-shield me-2"></i>
+                        <strong>Admin Panel</strong> | @AuthState.CurrentUser?.Username
+                    </span>
+                    <button class="btn btn-outline-light btn-sm" @onclick="SyncFromStripe" disabled="@isSyncing">
+                        @if (isSyncing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-sync-alt me-2"></i>
+                        }
+                        Sync from Stripe
+                    </button>
+                </div>
+            </div>
+        </section>
+    }
+
+    <!-- Raffles Section -->
+    <section class="raffles-section py-5">
+        <div class="container">
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-3">Loading raffles...</p>
+                </div>
+            }
+            else if (raffles != null && raffles.Any())
+            {
+                <div class="row g-4 justify-content-center">
+                    @foreach (var raffle in raffles)
+                    {
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <RaffleCard 
+                                RaffleId="@raffle.Id"
+                                Title="@raffle.Title"
+                                ImageUrl="@(raffle.PrimaryImageUrl ?? "")"
+                                Price="@((int)raffle.TicketPrice)"
+                                TicketsAvailable="@raffle.TicketsAvailable"
+                                TotalTickets="@raffle.TotalTickets"
+                                DrawDate="@raffle.DrawDate"
+                                IsFeatured="@raffle.IsFeatured"
+                                Benefits="@GetBenefits(raffle)" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No raffles available</h4>
+                    <p class="text-muted">Check back soon for new sweepstakes!</p>
+                    @if (AuthState.IsAdmin)
+                    {
+                        <p class="text-info small">Use the Sync button above to import raffles from Stripe.</p>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@code {
+    private List<RaffleDto>? raffles;
+    private bool isLoading = true;
+    private bool isSyncing = false;
+    private string? syncMessage;
+    private bool syncSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState.OnAuthStateChanged += OnAuthStateChanged;
+        await LoadRaffles();
+    }
+
+    private void OnAuthStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadRaffles()
+    {
+        isLoading = true;
+        try
+        {
+            raffles = await Api.GetRafflesAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading raffles: {ex.Message}");
+            raffles = new List<RaffleDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SyncFromStripe()
+    {
+        if (!AuthState.IsAdmin) return;
+
+        isSyncing = true;
+        syncMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Api.SyncFromStripeAsync();
+            if (result.Success)
+            {
+                syncMessage = $"Successfully synced {result.SyncedCount} raffle(s) from Stripe!";
+                syncSuccess = true;
+                await LoadRaffles();
+            }
+            else
+            {
+                syncMessage = result.Message;
+                syncSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            syncMessage = $"Error: {ex.Message}";
+            syncSuccess = false;
+        }
+        finally
+        {
+            isSyncing = false;
+        }
+    }
+
+    private List<RaffleCard.BenefitItem> GetBenefits(RaffleDto raffle)
+    {
+        if (raffle.Prizes == null || !raffle.Prizes.Any())
+        {
+            return new List<RaffleCard.BenefitItem>
+            {
+                new() { Icon = "fas fa-ticket-alt", Text = "Event tickets" },
+                new() { Icon = "fas fa-gift", Text = "Exclusive prizes" }
+            };
+        }
+
+        return raffle.Prizes.Take(3).Select(p => new RaffleCard.BenefitItem
+        {
+            Icon = p.Icon,
+            Text = p.Description
+        }).ToList();
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnAuthStateChanged -= OnAuthStateChanged;
+    }
+}

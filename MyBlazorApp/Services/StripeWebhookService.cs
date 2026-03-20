@@ -14,18 +14,24 @@ public class StripeWebhookService
     private readonly AppDbContext _context;
     private readonly ILogger<StripeWebhookService> _logger;
     private readonly RaffleService _raffleService;
+    private readonly IServiceProvider _serviceProvider;
 
     public StripeWebhookService(
         IConfiguration configuration,
         AppDbContext context,
         ILogger<StripeWebhookService> logger,
-        RaffleService raffleService)
+        RaffleService raffleService,
+        IServiceProvider serviceProvider)
     {
         _configuration = configuration;
         _context = context;
         _logger = logger;
         _raffleService = raffleService;
+        _serviceProvider = serviceProvider;
     }
+
+    // Helper to get StripeSyncService when needed (avoids circular dependency)
+    private StripeSyncService GetSyncService() => _serviceProvider.GetRequiredService<StripeSyncService>();
 
     /// <summary>
     /// Process a Stripe webhook event and validate its signature
@@ -168,34 +174,65 @@ public class StripeWebhookService
         try
         {
             var raffleId = int.Parse(metadata["raffle_id"]);
-            var quantity = metadata.ContainsKey("quantity") ? int.Parse(metadata["quantity"]) : 1;
             var buyerEmail = metadata.ContainsKey("buyer_email") ? metadata["buyer_email"] : (session.CustomerDetails?.Email ?? "");
             var buyerName = metadata.ContainsKey("buyer_name") ? metadata["buyer_name"] : (session.CustomerDetails?.Name ?? "");
+            var userId = metadata.ContainsKey("user_id") ? int.Parse(metadata["user_id"]) : 0;
+            var amountPaid = (decimal)(session.AmountTotal ?? 0) / 100; // Convert from cents
 
-            _logger.LogInformation($"Creating {quantity} raffle tickets for raffle {raffleId}, buyer: {buyerEmail}");
-
-            // Create tickets
-            for (int i = 0; i < quantity; i++)
+            // Check if this is a pre-selected tickets purchase
+            if (metadata.ContainsKey("purchase_type") && metadata["purchase_type"] == "selected_tickets"
+                && metadata.ContainsKey("ticket_ids"))
             {
-                var ticket = new Ticket
-                {
-                    RaffleId = raffleId,
-                    BuyerEmail = buyerEmail,
-                    BuyerName = buyerName,
-                    StripePaymentIntentId = session.PaymentIntentId,
-                    StripeSessionId = session.Id,
-                    AmountPaid = (decimal)session.AmountTotal / 100, // Convert from cents
-                    Status = "confirmed"
-                };
+                // Parse ticket IDs from metadata
+                var ticketIdsStr = metadata["ticket_ids"];
+                var ticketIds = ticketIdsStr.Split(',').Select(int.Parse).ToList();
 
-                await _raffleService.CreateTicketAsync(ticket);
+                _logger.LogInformation("Confirming pre-selected tickets [{TicketIds}] for raffle {RaffleId}, buyer: {BuyerEmail}, user: {UserId}", 
+                    ticketIdsStr, raffleId, buyerEmail, userId);
+
+                // Confirm the pre-selected tickets
+                var syncService = GetSyncService();
+                var confirmedTickets = await syncService.ConfirmTicketPurchaseAsync(
+                    raffleId: raffleId,
+                    userId: userId,
+                    ticketIds: ticketIds,
+                    paymentIntentId: session.PaymentIntentId ?? "",
+                    sessionId: session.Id,
+                    buyerEmail: buyerEmail,
+                    buyerName: buyerName,
+                    amountPaid: amountPaid
+                );
+
+                _logger.LogInformation("Successfully confirmed {Count} tickets for raffle {RaffleId}", 
+                    confirmedTickets.Count, raffleId);
             }
+            else
+            {
+                // Legacy: quantity-based purchase (no pre-selection)
+                var quantity = metadata.ContainsKey("quantity") ? int.Parse(metadata["quantity"]) : 1;
 
-            _logger.LogInformation($"Successfully created {quantity} tickets for raffle {raffleId}");
+                _logger.LogInformation("Creating {Quantity} raffle tickets for raffle {RaffleId}, buyer: {BuyerEmail}, user: {UserId}", 
+                    quantity, raffleId, buyerEmail, userId);
+
+                // Create tickets using the old bulk method
+                var tickets = await _raffleService.CreateTicketsAsync(
+                    raffleId: raffleId,
+                    userId: userId,
+                    email: buyerEmail,
+                    name: buyerName,
+                    quantity: quantity,
+                    paymentIntentId: session.PaymentIntentId ?? "",
+                    sessionId: session.Id,
+                    amountPaid: amountPaid
+                );
+
+                _logger.LogInformation("Successfully created {Count} tickets for raffle {RaffleId}", 
+                    tickets.Count, raffleId);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error handling raffle ticket purchase: {ex.Message}");
+            _logger.LogError(ex, "Error handling raffle ticket purchase");
         }
     }
 

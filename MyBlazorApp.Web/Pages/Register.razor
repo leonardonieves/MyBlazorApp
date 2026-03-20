@@ -1,0 +1,133 @@
+@page "/register"
+@inject ApiService Api
+@inject NavigationManager Navigation
+
+<PageTitle>Register - World Cup Sweepstakes</PageTitle>
+
+<div class="register-page">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-lg border-0" style="border-radius: 15px;">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="mb-2">Create Account</h2>
+                            <p class="text-muted">Join to participate in sweepstakes</p>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                @errorMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                @successMessage
+                            </div>
+                        }
+
+                        <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Username</label>
+                                <InputText class="form-control form-control-lg" 
+                                           @bind-Value="registerModel.Username" 
+                                           placeholder="Choose a username"
+                                           disabled="@isLoading" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Email</label>
+                                <InputText type="email" 
+                                           class="form-control form-control-lg" 
+                                           @bind-Value="registerModel.Email" 
+                                           placeholder="Enter your email"
+                                           disabled="@isLoading" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Password</label>
+                                <InputText type="password" 
+                                           class="form-control form-control-lg" 
+                                           @bind-Value="registerModel.Password" 
+                                           placeholder="Create a password"
+                                           disabled="@isLoading" />
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>Creating account...</span>
+                                }
+                                else
+                                {
+                                    <span>Create Account</span>
+                                }
+                            </button>
+                        </EditForm>
+
+                        <hr class="my-4" />
+
+                        <div class="text-center">
+                            <p class="text-muted mb-2">Already have an account?</p>
+                            <a href="/login" class="btn btn-outline-primary w-100">
+                                Login
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerModel = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(registerModel.Username) || 
+            string.IsNullOrWhiteSpace(registerModel.Email) ||
+            string.IsNullOrWhiteSpace(registerModel.Password))
+        {
+            errorMessage = "Please fill in all fields";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var response = await Api.RegisterAsync(registerModel);
+
+            if (response.Success)
+            {
+                successMessage = "Account created successfully! Redirecting to login...";
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = response.Message ?? "Registration failed";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

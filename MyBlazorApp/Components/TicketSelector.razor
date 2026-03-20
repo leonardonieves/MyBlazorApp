@@ -1,0 +1,524 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@using MyBlazorApp.Hubs
+@using MyBlazorApp.Services
+@implements IAsyncDisposable
+
+<div class="ticket-selector">
+    <div class="ticket-selector-header d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="mb-1">
+                <i class="fas fa-ticket-alt me-2"></i>Select Your Tickets
+            </h5>
+            <small class="text-muted">
+                Click on available tickets to select them
+            </small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="legend d-flex gap-3">
+                <span class="legend-item">
+                    <span class="ticket-dot available"></span> Available
+                </span>
+                <span class="legend-item">
+                    <span class="ticket-dot selected"></span> Selected
+                </span>
+                <span class="legend-item">
+                    <span class="ticket-dot reserved"></span> Reserved
+                </span>
+                <span class="legend-item">
+                    <span class="ticket-dot sold"></span> Sold
+                </span>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading tickets...</span>
+            </div>
+            <p class="text-muted mt-3">Loading available tickets...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            @errorMessage
+        </div>
+    }
+    else
+    {
+        <div class="ticket-stats mb-3 p-3 bg-light rounded">
+            <div class="row text-center">
+                <div class="col-3">
+                    <div class="stat-value text-success">@availableCount</div>
+                    <small class="text-muted">Available</small>
+                </div>
+                <div class="col-3">
+                    <div class="stat-value text-primary">@selectedTicketIds.Count</div>
+                    <small class="text-muted">Selected</small>
+                </div>
+                <div class="col-3">
+                    <div class="stat-value text-warning">@reservedCount</div>
+                    <small class="text-muted">Reserved</small>
+                </div>
+                <div class="col-3">
+                    <div class="stat-value text-danger">@soldCount</div>
+                    <small class="text-muted">Sold</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="ticket-grid">
+            @foreach (var ticket in tickets)
+            {
+                var isSelected = selectedTicketIds.Contains(ticket.TicketId);
+                var canSelect = ticket.Status == "available" || 
+                               (ticket.Status == "reserved" && ticket.ReservedByUserId == CurrentUserId);
+                var cssClass = GetTicketCssClass(ticket, isSelected);
+
+                <div class="ticket-item @cssClass" 
+                     @onclick="() => ToggleTicketSelection(ticket)"
+                     title="@GetTicketTooltip(ticket)">
+                    <span class="ticket-number">@ticket.DisplayNumber</span>
+                    @if (isSelected)
+                    {
+                        <i class="fas fa-check selected-check"></i>
+                    }
+                    @if (ticket.Status == "reserved" && ticket.ReservedByUserId != CurrentUserId)
+                    {
+                        <i class="fas fa-lock reserved-lock"></i>
+                    }
+                    @if (ticket.Status == "sold")
+                    {
+                        <i class="fas fa-times sold-mark"></i>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (selectedTicketIds.Any())
+        {
+            <div class="selection-summary mt-4 p-3 bg-light rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Selected Tickets:</strong>
+                        <span class="ms-2">
+                            @string.Join(", ", tickets.Where(t => selectedTicketIds.Contains(t.TicketId)).Select(t => t.DisplayNumber))
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Total:</strong>
+                        <span class="ms-2 text-primary fs-5">@((TicketPrice * selectedTicketIds.Count).ToString("C2"))</span>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (reservationExpiresAt.HasValue && selectedTicketIds.Any())
+        {
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-clock me-2"></i>
+                Your reservation expires in <strong>@GetTimeRemaining()</strong>. Complete your purchase before it expires.
+            </div>
+        }
+    }
+
+    <!-- SignalR Connection Status -->
+    <div class="connection-status mt-3">
+        @if (isConnected)
+        {
+            <small class="text-success">
+                <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                Live updates enabled
+            </small>
+        }
+        else
+        {
+            <small class="text-warning">
+                <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                Connecting...
+            </small>
+        }
+    </div>
+</div>
+
+<style>
+    .ticket-selector {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .ticket-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .ticket-dot.available { background: #28a745; }
+    .ticket-dot.selected { background: #007bff; }
+    .ticket-dot.reserved { background: #ffc107; }
+    .ticket-dot.sold { background: #dc3545; }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .ticket-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .ticket-item {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .ticket-item.available {
+        background: #d4edda;
+        border: 2px solid #28a745;
+        color: #155724;
+    }
+
+    .ticket-item.available:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    .ticket-item.selected {
+        background: #007bff;
+        border: 2px solid #0056b3;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+    }
+
+    .ticket-item.reserved {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        color: #856404;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .ticket-item.my-reserved {
+        background: #fff3cd;
+        border: 2px solid #007bff;
+        color: #856404;
+        cursor: pointer;
+    }
+
+    .ticket-item.sold {
+        background: #f8d7da;
+        border: 2px solid #dc3545;
+        color: #721c24;
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    .selected-check {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        font-size: 0.7rem;
+        color: white;
+    }
+
+    .reserved-lock, .sold-mark {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        font-size: 0.6rem;
+    }
+
+    .selection-summary {
+        border: 2px solid #007bff;
+    }
+
+    .connection-status {
+        text-align: right;
+    }
+
+    @@media (max-width: 576px) {
+        .ticket-grid {
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+        }
+
+        .ticket-item {
+            width: 50px;
+            height: 50px;
+            font-size: 0.75rem;
+        }
+
+        .legend {
+            flex-wrap: wrap;
+            gap: 0.5rem !important;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int RaffleId { get; set; }
+
+    [Parameter]
+    public int CurrentUserId { get; set; }
+
+    [Parameter]
+    public decimal TicketPrice { get; set; }
+
+    [Parameter]
+    public int MaxSelectable { get; set; } = 10;
+
+    [Parameter]
+    public EventCallback<(List<int> TicketIds, List<string> DisplayNumbers)> OnSelectionChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<ReserveTicketsResult> OnTicketsReserved { get; set; }
+
+    private List<TicketStatusUpdate> tickets = new();
+    private HashSet<int> selectedTicketIds = new();
+    private HubConnection? hubConnection;
+    private bool isLoading = true;
+    private bool isConnected = false;
+    private string errorMessage = "";
+    private DateTime? reservationExpiresAt;
+    private System.Timers.Timer? countdownTimer;
+
+    // Stats
+    private int availableCount => tickets.Count(t => t.Status == "available");
+    private int reservedCount => tickets.Count(t => t.Status == "reserved");
+    private int soldCount => tickets.Count(t => t.Status == "sold");
+
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
+    [Inject]
+    private StripeSyncService SyncService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTicketsAsync();
+        await InitializeSignalRAsync();
+        StartCountdownTimer();
+    }
+
+    private async Task LoadTicketsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            tickets = await SyncService.GetTicketStatusesAsync(RaffleId);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading tickets: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task InitializeSignalRAsync()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/rafflehub"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<List<TicketStatusUpdate>>("TicketStatusChanged", (updates) =>
+            {
+                foreach (var update in updates)
+                {
+                    var existing = tickets.FirstOrDefault(t => t.TicketId == update.TicketId);
+                    if (existing != null)
+                    {
+                        existing.Status = update.Status;
+                        existing.ReservedByUserId = update.ReservedByUserId;
+                        existing.ExpiresAt = update.ExpiresAt;
+
+                        // If this ticket was sold by someone else, remove from selection
+                        if (update.Status == "sold" && selectedTicketIds.Contains(update.TicketId))
+                        {
+                            selectedTicketIds.Remove(update.TicketId);
+                        }
+                    }
+                }
+                InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                isConnected = true;
+                await hubConnection.InvokeAsync("JoinRaffle", RaffleId);
+                await LoadTicketsAsync();
+                await InvokeAsync(StateHasChanged);
+            };
+
+            hubConnection.Closed += (error) =>
+            {
+                isConnected = false;
+                InvokeAsync(StateHasChanged);
+                return Task.CompletedTask;
+            };
+
+            await hubConnection.StartAsync();
+            await hubConnection.InvokeAsync("JoinRaffle", RaffleId);
+            isConnected = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error connecting to live updates: {ex.Message}";
+            isConnected = false;
+        }
+    }
+
+    private void StartCountdownTimer()
+    {
+        countdownTimer = new System.Timers.Timer(1000);
+        countdownTimer.Elapsed += async (s, e) =>
+        {
+            if (reservationExpiresAt.HasValue && reservationExpiresAt.Value <= DateTime.UtcNow)
+            {
+                // Reservation expired
+                selectedTicketIds.Clear();
+                reservationExpiresAt = null;
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        };
+        countdownTimer.Start();
+    }
+
+    private async Task ToggleTicketSelection(TicketStatusUpdate ticket)
+    {
+        if (ticket.Status == "sold") return;
+        if (ticket.Status == "reserved" && ticket.ReservedByUserId != CurrentUserId) return;
+
+        if (selectedTicketIds.Contains(ticket.TicketId))
+        {
+            selectedTicketIds.Remove(ticket.TicketId);
+        }
+        else
+        {
+            if (selectedTicketIds.Count >= MaxSelectable)
+            {
+                errorMessage = $"You can select a maximum of {MaxSelectable} tickets";
+                return;
+            }
+            selectedTicketIds.Add(ticket.TicketId);
+        }
+
+        errorMessage = "";
+        var selectedDisplayNumbers = tickets
+            .Where(t => selectedTicketIds.Contains(t.TicketId))
+            .Select(t => t.DisplayNumber)
+            .ToList();
+        await OnSelectionChanged.InvokeAsync((selectedTicketIds.ToList(), selectedDisplayNumbers));
+    }
+
+    public async Task<ReserveTicketsResult> ReserveSelectedTicketsAsync()
+    {
+        if (!selectedTicketIds.Any())
+        {
+            return new ReserveTicketsResult { Success = false, Message = "No tickets selected" };
+        }
+
+        var result = await SyncService.ReserveTicketsAsync(RaffleId, CurrentUserId, selectedTicketIds.ToList());
+
+        if (result.Success)
+        {
+            reservationExpiresAt = result.ExpiresAt;
+            await OnTicketsReserved.InvokeAsync(result);
+        }
+        else
+        {
+            // Remove unavailable tickets from selection
+            foreach (var ticketId in result.UnavailableTicketIds)
+            {
+                selectedTicketIds.Remove(ticketId);
+            }
+            errorMessage = result.Message;
+        }
+
+        return result;
+    }
+
+    public List<int> GetSelectedTicketIds() => selectedTicketIds.ToList();
+
+    private string GetTicketCssClass(TicketStatusUpdate ticket, bool isSelected)
+    {
+        if (isSelected) return "selected";
+        if (ticket.Status == "sold") return "sold";
+        if (ticket.Status == "reserved")
+        {
+            return ticket.ReservedByUserId == CurrentUserId ? "my-reserved" : "reserved";
+        }
+        return "available";
+    }
+
+    private string GetTicketTooltip(TicketStatusUpdate ticket)
+    {
+        return ticket.Status switch
+        {
+            "sold" => $"Ticket #{ticket.DisplayNumber} - Sold",
+            "reserved" when ticket.ReservedByUserId == CurrentUserId => $"Ticket #{ticket.DisplayNumber} - Reserved by you",
+            "reserved" => $"Ticket #{ticket.DisplayNumber} - Reserved by another user",
+            _ => $"Ticket #{ticket.DisplayNumber} - Click to select"
+        };
+    }
+
+    private string GetTimeRemaining()
+    {
+        if (!reservationExpiresAt.HasValue) return "";
+        var remaining = reservationExpiresAt.Value - DateTime.UtcNow;
+        if (remaining.TotalSeconds <= 0) return "Expired";
+        return $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        countdownTimer?.Stop();
+        countdownTimer?.Dispose();
+
+        if (hubConnection != null)
+        {
+            await hubConnection.InvokeAsync("LeaveRaffle", RaffleId);
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

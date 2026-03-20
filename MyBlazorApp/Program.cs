@@ -1,6 +1,7 @@
 using MyBlazorApp.Components;
 using MyBlazorApp.Services;
 using MyBlazorApp.Data;
+using MyBlazorApp.Hubs;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,14 +20,23 @@ builder.Services.AddHttpClient();
 // Add controllers for API endpoints (webhooks)
 builder.Services.AddControllers();
 
+// Add SignalR for real-time updates
+builder.Services.AddSignalR();
+
 // Add custom services
 builder.Services.AddScoped<StripeService>();
 builder.Services.AddScoped<StripeWebhookService>(); // Webhook service
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<RaffleService>(); // Raffle service
+builder.Services.AddScoped<StripeSyncService>(); // Stripe sync service
 builder.Services.AddScoped<UrlConfigurationService>(); // For dynamic URL configuration
-builder.Services.AddSingleton<SessionService>(); // Singleton to maintain sessions across circuits
+builder.Services.AddScoped<SessionService>(); // Scoped - one per circuit/connection
+builder.Services.AddSingleton<SessionStore>(); // Singleton - persists sessions across circuits
+builder.Services.AddSingleton<AppAuthStateProvider>(); // Singleton - global auth state
+
+// Add hosted service for expired reservation cleanup
+builder.Services.AddHostedService<ReservationCleanupService>();
 
 // Add distributed cache for sessions
 builder.Services.AddDistributedMemoryCache();
@@ -48,14 +58,14 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
-}
-
-if (!app.Environment.IsDevelopment())
-{
     app.UseHttpsRedirection();
 }
 
@@ -65,6 +75,9 @@ app.UseAntiforgery();
 
 // Map API controllers (webhooks)
 app.MapControllers();
+
+// Map SignalR hub
+app.MapHub<RaffleHub>("/rafflehub");
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

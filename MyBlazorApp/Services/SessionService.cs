@@ -1,56 +1,88 @@
 using MyBlazorApp.Models;
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 
 namespace MyBlazorApp.Services;
 
 /// <summary>
-/// Servicio Singleton para mantener el estado de autenticación del usuario por circuito
+/// Servicio Scoped para mantener el estado de autenticación del usuario
+/// Cada circuito de Blazor Server tiene su propia instancia
 /// </summary>
 public class SessionService
 {
-    // Diccionario thread-safe para mantener usuarios por ID de circuito
-    private readonly ConcurrentDictionary<string, User> _activeUsers = new();
-    private string? _currentCircuitId;
+    private User? _currentUser;
+    private string? _circuitId;
+
+    public string? CircuitId => _circuitId;
 
     public void SetCircuitId(string circuitId)
     {
-        _currentCircuitId = circuitId;
+        _circuitId = circuitId;
     }
 
     public User? GetCurrentUser()
     {
-        if (string.IsNullOrEmpty(_currentCircuitId))
-            return null;
-
-        _activeUsers.TryGetValue(_currentCircuitId, out var user);
-        return user;
+        return _currentUser;
     }
 
     public void SetCurrentUser(User? user)
     {
-        if (string.IsNullOrEmpty(_currentCircuitId))
-            return;
-
-        if (user == null)
-        {
-            _activeUsers.TryRemove(_currentCircuitId, out _);
-        }
-        else
-        {
-            _activeUsers[_currentCircuitId] = user;
-        }
+        _currentUser = user;
     }
 
     public bool IsAuthenticated()
     {
-        return GetCurrentUser() != null;
+        return _currentUser != null;
     }
 
     public void Logout()
     {
-        if (!string.IsNullOrEmpty(_currentCircuitId))
+        _currentUser = null;
+    }
+}
+
+/// <summary>
+/// Servicio Singleton que mantiene un mapa de sesiones por circuito
+/// Persiste las sesiones cuando el circuito se desconecta temporalmente
+/// </summary>
+public class SessionStore
+{
+    private readonly ConcurrentDictionary<string, User> _sessions = new();
+    private readonly ConcurrentDictionary<string, DateTime> _lastAccess = new();
+    private readonly TimeSpan _sessionTimeout = TimeSpan.FromMinutes(60);
+
+    public void SetUser(string circuitId, User user)
+    {
+        _sessions[circuitId] = user;
+        _lastAccess[circuitId] = DateTime.UtcNow;
+    }
+
+    public User? GetUser(string circuitId)
+    {
+        if (_sessions.TryGetValue(circuitId, out var user))
         {
-            _activeUsers.TryRemove(_currentCircuitId, out _);
+            _lastAccess[circuitId] = DateTime.UtcNow;
+            return user;
+        }
+        return null;
+    }
+
+    public void RemoveUser(string circuitId)
+    {
+        _sessions.TryRemove(circuitId, out _);
+        _lastAccess.TryRemove(circuitId, out _);
+    }
+
+    public void CleanupExpiredSessions()
+    {
+        var cutoff = DateTime.UtcNow - _sessionTimeout;
+        foreach (var kvp in _lastAccess)
+        {
+            if (kvp.Value < cutoff)
+            {
+                _sessions.TryRemove(kvp.Key, out _);
+                _lastAccess.TryRemove(kvp.Key, out _);
+            }
         }
     }
 }

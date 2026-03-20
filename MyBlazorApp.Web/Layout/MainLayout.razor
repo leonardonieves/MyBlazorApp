@@ -1,0 +1,19 @@
+﻿@inherits LayoutComponentBase
+@inject AuthStateService AuthState
+
+<div class="raffle-page">
+    <RaffleNavbar />
+
+    <main class="raffle-main">
+        @Body
+    </main>
+
+    <RaffleFooter />
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthState.InitializeAsync();
+    }
+}

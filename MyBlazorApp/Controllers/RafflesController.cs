@@ -37,29 +37,33 @@ public class RafflesController : ControllerBase
         try
         {
             var raffles = await _raffleService.GetActiveRafflesAsync();
-
-            var raffleDtos = raffles.Select(r => new RaffleDto
-            {
-                Id = r.Id,
-                Title = r.Title,
-                Description = r.Description,
-                PrizeDetails = r.PrizeDetails,
-                TicketPrice = r.TicketPrice,
-                TotalTickets = r.TotalTickets,
-                TicketsSold = r.TicketsSold,
-                TicketsAvailable = r.TotalTickets - r.TicketsSold,
-                ImageUrl = r.ImageUrl,
-                DrawDate = r.DrawDate,
-                IsActive = r.IsActive,
-                IsDrawn = r.IsDrawn
-            }).ToList();
-
+            var raffleDtos = raffles.Select(r => r.ToDto()).ToList();
             return Ok(raffleDtos);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error getting raffles: {ex.Message}");
+            _logger.LogError(ex, "Error getting raffles");
             return StatusCode(500, new { error = "Error fetching raffles" });
+        }
+    }
+
+    /// <summary>
+    /// GET: api/raffles/featured
+    /// Get featured raffles
+    /// </summary>
+    [HttpGet("featured")]
+    public async Task<ActionResult<List<RaffleDto>>> GetFeaturedRaffles([FromQuery] int count = 3)
+    {
+        try
+        {
+            var raffles = await _raffleService.GetFeaturedRafflesAsync(count);
+            var raffleDtos = raffles.Select(r => r.ToDto()).ToList();
+            return Ok(raffleDtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting featured raffles");
+            return StatusCode(500, new { error = "Error fetching featured raffles" });
         }
     }
 
@@ -77,28 +81,31 @@ public class RafflesController : ControllerBase
             if (raffle == null)
                 return NotFound(new { error = "Raffle not found" });
 
-            var raffleDto = new RaffleDto
-            {
-                Id = raffle.Id,
-                Title = raffle.Title,
-                Description = raffle.Description,
-                PrizeDetails = raffle.PrizeDetails,
-                TicketPrice = raffle.TicketPrice,
-                TotalTickets = raffle.TotalTickets,
-                TicketsSold = raffle.TicketsSold,
-                TicketsAvailable = raffle.TotalTickets - raffle.TicketsSold,
-                ImageUrl = raffle.ImageUrl,
-                DrawDate = raffle.DrawDate,
-                IsActive = raffle.IsActive,
-                IsDrawn = raffle.IsDrawn
-            };
-
-            return Ok(raffleDto);
+            return Ok(raffle.ToDto());
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error getting raffle {id}: {ex.Message}");
+            _logger.LogError(ex, "Error getting raffle {RaffleId}", id);
             return StatusCode(500, new { error = "Error fetching raffle" });
+        }
+    }
+
+    /// <summary>
+    /// GET: api/raffles/{id}/stats
+    /// Get raffle statistics
+    /// </summary>
+    [HttpGet("{id}/stats")]
+    public async Task<ActionResult<RaffleStatistics>> GetRaffleStats(int id)
+    {
+        try
+        {
+            var stats = await _raffleService.GetRaffleStatisticsAsync(id);
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stats for raffle {RaffleId}", id);
+            return StatusCode(500, new { error = "Error fetching raffle statistics" });
         }
     }
 

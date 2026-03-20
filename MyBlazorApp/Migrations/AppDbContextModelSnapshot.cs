@@ -129,28 +129,45 @@ namespace MyBlazorApp.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("DrawDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsDrawn")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("PrizeDetails")
+                    b.Property<string>("FullDescription")
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("MaxTicketsPerUser")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PrimaryImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("SalesEndDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("SalesStartDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<string>("StripePriceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("StripeProductId")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
@@ -176,9 +193,75 @@ namespace MyBlazorApp.Migrations
 
                     b.HasIndex("DrawDate");
 
-                    b.HasIndex("IsActive");
+                    b.HasIndex("IsFeatured");
+
+                    b.HasIndex("SalesEndDate");
+
+                    b.HasIndex("SalesStartDate");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Raffles");
+                });
+
+            modelBuilder.Entity("MyBlazorApp.Models.RaffleImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("RaffleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RaffleId");
+
+                    b.ToTable("RaffleImages");
+                });
+
+            modelBuilder.Entity("MyBlazorApp.Models.RafflePrize", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("RaffleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RaffleId");
+
+                    b.ToTable("RafflePrizes");
                 });
 
             modelBuilder.Entity("MyBlazorApp.Models.Role", b =>
@@ -220,7 +303,6 @@ namespace MyBlazorApp.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("BuyerEmail")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
@@ -231,16 +313,31 @@ namespace MyBlazorApp.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("DisplayNumber")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
                     b.Property<int>("RaffleId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                    b.Property<DateTime?>("ReservationExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("ReservedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("SoldAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("StripePaymentIntentId")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
@@ -253,16 +350,23 @@ namespace MyBlazorApp.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.HasKey("Id");
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("BuyerEmail");
+                    b.HasKey("Id");
 
                     b.HasIndex("RaffleId");
 
-                    b.HasIndex("StripePaymentIntentId");
+                    b.HasIndex("ReservationExpiresAt");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("TicketNumber")
                         .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("RaffleId", "Status");
 
                     b.ToTable("Tickets");
                 });
@@ -291,6 +395,13 @@ namespace MyBlazorApp.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("StripeCustomerCreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -302,6 +413,8 @@ namespace MyBlazorApp.Migrations
                         .IsUnique();
 
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("StripeCustomerId");
 
                     b.HasIndex("Username")
                         .IsUnique();
@@ -356,6 +469,28 @@ namespace MyBlazorApp.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MyBlazorApp.Models.RaffleImage", b =>
+                {
+                    b.HasOne("MyBlazorApp.Models.Raffle", "Raffle")
+                        .WithMany("Images")
+                        .HasForeignKey("RaffleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Raffle");
+                });
+
+            modelBuilder.Entity("MyBlazorApp.Models.RafflePrize", b =>
+                {
+                    b.HasOne("MyBlazorApp.Models.Raffle", "Raffle")
+                        .WithMany("Prizes")
+                        .HasForeignKey("RaffleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Raffle");
+                });
+
             modelBuilder.Entity("MyBlazorApp.Models.Ticket", b =>
                 {
                     b.HasOne("MyBlazorApp.Models.Raffle", "Raffle")
@@ -364,7 +499,14 @@ namespace MyBlazorApp.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MyBlazorApp.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Raffle");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MyBlazorApp.Models.User", b =>
@@ -399,6 +541,10 @@ namespace MyBlazorApp.Migrations
 
             modelBuilder.Entity("MyBlazorApp.Models.Raffle", b =>
                 {
+                    b.Navigation("Images");
+
+                    b.Navigation("Prizes");
+
                     b.Navigation("Tickets");
 
                     b.Navigation("Winner");
