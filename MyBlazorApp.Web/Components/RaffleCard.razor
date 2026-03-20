@@ -1,0 +1,45 @@
+@using MyBlazorApp.Shared.Models
+
+<div class="raffle-card">
+    <div class="card-header">
+        <h3>@Raffle.Name</h3>
+        <span class="price">$@Raffle.TicketPrice</span>
+    </div>
+    <div class="card-body">
+        <p>@Raffle.Description</p>
+        @if (Benefits != null && Benefits.Any())
+        {
+            <ul class="benefits-list">
+                @foreach (var benefit in Benefits)
+                {
+                    <li>@benefit.Icon @benefit.Text</li>
+                }
+            </ul>
+        }
+        <div class="tickets-info">
+            <span>Tickets disponibles: @Raffle.AvailableTickets / @Raffle.TotalTickets</span>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button class="btn btn-primary" @onclick="OnSelectRaffle">
+            Participar
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required RaffleDto Raffle { get; set; }
+    [Parameter] public List<BenefitItem>? Benefits { get; set; }
+    [Parameter] public EventCallback<RaffleDto> OnRaffleSelected { get; set; }
+
+    private async Task OnSelectRaffle()
+    {
+        await OnRaffleSelected.InvokeAsync(Raffle);
+    }
+
+    public class BenefitItem
+    {
+        public string Icon { get; set; } = "";
+        public string Text { get; set; } = "";
+    }
+}
