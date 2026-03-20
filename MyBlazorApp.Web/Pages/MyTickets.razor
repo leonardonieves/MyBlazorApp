@@ -1,0 +1,387 @@
+@page "/my-tickets"
+@using MyBlazorApp.Web.Services
+@using MyBlazorApp.Shared.Models
+@inject NavigationManager Navigation
+@inject ApiService Api
+@inject AuthStateService AuthState
+@inject ILogger<MyTickets> Logger
+
+<PageTitle>Mis Tickets - Mi Rifa</PageTitle>
+
+<div class="my-tickets-page">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">🎟️ Mi Rifa</a>
+            <div class="navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    @if (isAuthenticated)
+                    {
+                        <li class="nav-item">
+                            <span class="nav-link">
+                                <i class="fas fa-user-circle"></i> @currentUser?.Username
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <button class="btn btn-outline-light btn-sm" @onclick="HandleLogout">
+                                <i class="fas fa-sign-out-alt"></i> Salir
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Inicio</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Mis Tickets</li>
+            </ol>
+        </nav>
+
+        <h1 class="page-title mb-4">
+            <i class="fas fa-ticket-alt"></i> Mis Tickets
+        </h1>
+
+        @if (!isAuthenticated)
+        {
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Debes <a href="/login">iniciar sesión</a> para ver tus tickets.
+            </div>
+        }
+        else if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        }
+        else if (tickets == null || tickets.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <h3>No tienes tickets aún</h3>
+                <p class="text-muted">Compra tus primeros tickets y participa en nuestras rifas</p>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-shopping-cart me-2"></i> Ver Rifas Disponibles
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- Summary -->
+            <div class="tickets-summary mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="summary-card">
+                            <div class="summary-icon">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-value">@tickets.Count</span>
+                                <span class="summary-label">Total Tickets</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="summary-card">
+                            <div class="summary-icon confirmed">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-value">@tickets.Count(t => t.Status == "Confirmed")</span>
+                                <span class="summary-label">Confirmados</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="summary-card">
+                            <div class="summary-icon winner">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="summary-info">
+                                <span class="summary-value">@tickets.Count(t => t.IsWinner)</span>
+                                <span class="summary-label">Ganadores</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tickets by Raffle -->
+            @foreach (var group in tickets.GroupBy(t => t.RaffleId))
+            {
+                <div class="raffle-tickets-group mb-4">
+                    <h4 class="group-title">
+                        <i class="fas fa-gift me-2"></i>
+                        Rifa #@group.Key
+                    </h4>
+                    <div class="tickets-grid">
+                        @foreach (var ticket in group.OrderBy(t => t.TicketNumber))
+                        {
+                            <div class="ticket-card @(ticket.IsWinner ? "winner" : "") @(ticket.Status == "Confirmed" ? "confirmed" : "pending")">
+                                <div class="ticket-number">
+                                    <span class="number-label">Número</span>
+                                    <span class="number-value">@ticket.TicketNumber.ToString("D4")</span>
+                                </div>
+                                <div class="ticket-status">
+                                    @if (ticket.IsWinner)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-trophy"></i> ¡GANADOR!
+                                        </span>
+                                    }
+                                    else if (ticket.Status == "Confirmed")
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Confirmado
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-clock"></i> @ticket.Status
+                                        </span>
+                                    }
+                                </div>
+                                <div class="ticket-date">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i> @ticket.PurchasedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<style>
+    .my-tickets-page {
+        min-height: 100vh;
+        background: #f8f9fa;
+    }
+
+    .navbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .page-title {
+        color: #333;
+        font-weight: 700;
+    }
+
+    .page-title i {
+        color: #667eea;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .empty-icon {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    .empty-icon i {
+        font-size: 40px;
+        color: white;
+    }
+
+    .empty-state h3 {
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    /* Summary Cards */
+    .summary-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .summary-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+
+    .summary-icon.confirmed {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .summary-icon.winner {
+        background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+    }
+
+    .summary-value {
+        display: block;
+        font-size: 24px;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .summary-label {
+        display: block;
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+    }
+
+    /* Tickets Group */
+    .raffle-tickets-group {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .group-title {
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #eee;
+    }
+
+    .tickets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .ticket-card {
+        background: #f8f9fa;
+        border: 2px solid #dee2e6;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .ticket-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .ticket-card.confirmed {
+        border-color: #28a745;
+        background: linear-gradient(to bottom, #f0fff4, #fff);
+    }
+
+    .ticket-card.winner {
+        border-color: #ffc107;
+        background: linear-gradient(to bottom, #fff9e6, #fff);
+        animation: winner-glow 2s infinite;
+    }
+
+    @@keyframes winner-glow {
+        0%, 100% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(255, 193, 7, 0.5); }
+    }
+
+    .number-label {
+        display: block;
+        font-size: 11px;
+        color: #999;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+
+    .number-value {
+        display: block;
+        font-size: 28px;
+        font-weight: 700;
+        color: #333;
+        font-family: 'Courier New', monospace;
+    }
+
+    .ticket-status {
+        margin: 15px 0 10px;
+    }
+
+    .ticket-date {
+        font-size: 12px;
+    }
+
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+    }
+
+    .breadcrumb-item a {
+        color: #667eea;
+        text-decoration: none;
+    }
+</style>
+
+@code {
+    private List<TicketDto>? tickets;
+    private bool isLoading = true;
+    private bool isAuthenticated = false;
+    private AuthUserData? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            isAuthenticated = await AuthState.IsAuthenticatedAsync();
+            currentUser = await AuthState.GetUserAsync();
+
+            if (isAuthenticated && currentUser != null)
+            {
+                // Obtener tickets del usuario via API
+                tickets = await Api.GetUserTicketsAsync(currentUser.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error loading tickets: {ex.Message}");
+            tickets = new List<TicketDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthState.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+}

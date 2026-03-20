@@ -1,0 +1,482 @@
+@page "/raffle/{RaffleId:int}"
+@using MyBlazorApp.Web.Services
+@using MyBlazorApp.Shared.Models
+@inject AuthStateService AuthState
+@inject ApiService Api
+@inject NavigationManager NavigationManager
+@inject ILogger<RaffleDetail> Logger
+
+<PageTitle>@(raffle?.Title ?? "Cargando...") - Mi Rifa</PageTitle>
+
+<div class="raffle-detail-page">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">🎟️ Mi Rifa</a>
+            <div class="navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    @if (isAuthenticated)
+                    {
+                        <li class="nav-item">
+                            <span class="nav-link">
+                                <i class="fas fa-user-circle"></i> @currentUser?.Username
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <button class="btn btn-outline-light btn-sm" @onclick="HandleLogout">
+                                <i class="fas fa-sign-out-alt"></i> Salir
+                            </button>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" href="/login">Ingresar</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    }
+    else if (raffle == null)
+    {
+        <div class="container py-5 text-center">
+            <h2>Rifa no encontrada</h2>
+            <p class="text-muted">La rifa que buscas no existe o ya no está disponible.</p>
+            <a href="/" class="btn btn-primary">Volver al inicio</a>
+        </div>
+    }
+    else
+    {
+        <div class="container py-4">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Inicio</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@raffle.Title</li>
+                </ol>
+            </nav>
+
+            <div class="row">
+                <!-- Imagen y detalles -->
+                <div class="col-lg-6 mb-4">
+                    @if (!string.IsNullOrEmpty(raffle.ImageUrl))
+                    {
+                        <div class="raffle-image-container">
+                            <img src="@raffle.ImageUrl" alt="@raffle.Title" class="img-fluid rounded" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="raffle-image-placeholder">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                    }
+
+                    <!-- Premios -->
+                    @if (raffle.Prizes?.Any() == true)
+                    {
+                        <div class="prizes-section mt-4">
+                            <h4><i class="fas fa-trophy"></i> Premios</h4>
+                            <ul class="list-group">
+                                @foreach (var prize in raffle.Prizes.OrderBy(p => p.Position))
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@prize.Name</strong>
+                                            <br />
+                                            <small class="text-muted">@prize.Description</small>
+                                        </div>
+                                        <span class="badge bg-success">$@prize.Value</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+
+                <!-- Info y compra -->
+                <div class="col-lg-6">
+                    <div class="raffle-info-card">
+                        <h1 class="raffle-title">@raffle.Title</h1>
+                        <p class="raffle-description">@raffle.Description</p>
+
+                        <div class="price-tag">
+                            <span class="price-label">Precio por ticket:</span>
+                            <span class="price-value">$@raffle.TicketPrice</span>
+                        </div>
+
+                        <!-- Progreso de ventas -->
+                        <div class="sales-progress mt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tickets vendidos</span>
+                                <span><strong>@raffle.TicketsSold</strong> / @raffle.TotalTickets</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: @(raffle.SoldPercentage)%"
+                                     aria-valuenow="@raffle.SoldPercentage" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    @raffle.SoldPercentage.ToString("F1")%
+                                </div>
+                            </div>
+                            <small class="text-muted">@raffle.TicketsAvailable tickets disponibles</small>
+                        </div>
+
+                        <!-- Fechas -->
+                        <div class="dates-info mt-4">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Inicio:</small>
+                                    <p class="mb-0"><i class="fas fa-calendar-alt"></i> @raffle.StartDate.ToString("dd/MM/yyyy")</p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Fin:</small>
+                                    <p class="mb-0"><i class="fas fa-calendar-check"></i> @raffle.EndDate.ToString("dd/MM/yyyy")</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <!-- Formulario de compra -->
+                        @if (raffle.IsSoldOut)
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> Esta rifa está agotada
+                            </div>
+                        }
+                        else if (!isAuthenticated)
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> 
+                                <a href="/login">Inicia sesión</a> o <a href="/register">regístrate</a> para comprar tickets
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="buy-section">
+                                <h5><i class="fas fa-shopping-cart"></i> Comprar Tickets</h5>
+                                
+                                @if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    <div class="alert alert-danger">@errorMessage</div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(successMessage))
+                                {
+                                    <div class="alert alert-success">@successMessage</div>
+                                }
+
+                                <div class="quantity-selector mb-3">
+                                    <label class="form-label">Cantidad de tickets:</label>
+                                    <div class="input-group">
+                                        <button class="btn btn-outline-secondary" type="button" 
+                                                @onclick="DecrementQuantity" disabled="@(quantity <= 1 || isPurchasing)">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <input type="number" class="form-control text-center" 
+                                               @bind="quantity" min="1" max="@raffle.TicketsAvailable" 
+                                               disabled="@isPurchasing" />
+                                        <button class="btn btn-outline-secondary" type="button" 
+                                                @onclick="IncrementQuantity" disabled="@(quantity >= raffle.TicketsAvailable || isPurchasing)">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="total-price mb-3">
+                                    <span>Total a pagar:</span>
+                                    <strong class="fs-4 text-primary">$@((raffle.TicketPrice * quantity).ToString("F2"))</strong>
+                                </div>
+
+                                <button class="btn btn-success btn-lg w-100" 
+                                        @onclick="HandlePurchase" 
+                                        disabled="@isPurchasing">
+                                    @if (isPurchasing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <span>Procesando...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-credit-card me-2"></i>
+                                        <span>Comprar @quantity ticket(s)</span>
+                                    }
+                                </button>
+
+                                <p class="text-muted small mt-3 text-center">
+                                    <i class="fas fa-lock"></i> Pago seguro con Stripe
+                                </p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int RaffleId { get; set; }
+
+    private RaffleDto? raffle;
+    private bool isLoading = true;
+    private bool isAuthenticated = false;
+    private AuthUserData? currentUser;
+    
+    private int quantity = 1;
+    private bool isPurchasing = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            isAuthenticated = await AuthState.IsAuthenticatedAsync();
+            currentUser = await AuthState.GetUserAsync();
+            raffle = await Api.GetRaffleByIdAsync(RaffleId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error loading raffle: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void IncrementQuantity()
+    {
+        if (raffle != null && quantity < raffle.TicketsAvailable)
+        {
+            quantity++;
+        }
+    }
+
+    private void DecrementQuantity()
+    {
+        if (quantity > 1)
+        {
+            quantity--;
+        }
+    }
+
+    private async Task HandlePurchase()
+    {
+        if (!isAuthenticated || currentUser == null || raffle == null)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        errorMessage = null;
+        successMessage = null;
+        isPurchasing = true;
+
+        try
+        {
+            var request = new BuyTicketRequest
+            {
+                RaffleId = raffle.Id,
+                Quantity = quantity,
+                UserId = currentUser.Id,
+                BuyerEmail = currentUser.Email,
+                BuyerName = currentUser.Username,
+                StripeCustomerId = currentUser.StripeCustomerId,
+                SuccessUrl = NavigationManager.BaseUri + $"payment-success?raffleId={raffle.Id}",
+                CancelUrl = NavigationManager.BaseUri + $"raffle/{raffle.Id}"
+            };
+
+            var result = await Api.BuyTicketsAsync(request);
+
+            if (result.Success && !string.IsNullOrEmpty(result.CheckoutUrl))
+            {
+                // Redirigir a Stripe Checkout
+                NavigationManager.NavigateTo(result.CheckoutUrl, true);
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Error al procesar la compra";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error purchasing tickets: {ex.Message}");
+            errorMessage = "Error al procesar la compra. Intenta de nuevo.";
+        }
+        finally
+        {
+            isPurchasing = false;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthState.LogoutAsync();
+        NavigationManager.NavigateTo("/login");
+    }
+}
+
+<style>
+.raffle-detail-page {
+    min-height: 100vh;
+    background: #f8f9fa;
+}
+
+.navbar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.raffle-image-container img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.raffle-image-placeholder {
+    width: 100%;
+    height: 300px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 80px;
+}
+
+.raffle-info-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.raffle-title {
+    color: #333;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.raffle-description {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.price-tag {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.price-label {
+    font-size: 14px;
+}
+
+.price-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.progress {
+    height: 10px;
+    border-radius: 5px;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.prizes-section h4 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.buy-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.buy-section h5 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.quantity-selector .form-control {
+    max-width: 80px;
+}
+
+.total-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    padding: 15px;
+    font-weight: 600;
+}
+
+.btn-success:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+}
+
+.dates-info p {
+    font-weight: 500;
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+}
+
+.breadcrumb-item a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+</style>

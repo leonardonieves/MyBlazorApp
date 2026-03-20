@@ -1,0 +1,145 @@
+@page "/payment-success"
+@using MyBlazorApp.Web.Services
+@using MyBlazorApp.Shared.Models
+@inject NavigationManager Navigation
+@inject ApiService Api
+@inject AuthStateService AuthState
+
+<PageTitle>Pago Exitoso - Mi Rifa</PageTitle>
+
+<div class="payment-success-page">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">🎟️ Mi Rifa</a>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-7 col-lg-6">
+                <div class="card shadow-lg border-0 success-card">
+                    <div class="card-body p-5 text-center">
+                        <!-- Success Icon -->
+                        <div class="mb-4">
+                            <div class="success-icon-circle">
+                                <i class="fas fa-check"></i>
+                            </div>
+                        </div>
+
+                        <!-- Success Message -->
+                        <h2 class="mb-3 success-title">
+                            ¡Pago Exitoso!
+                        </h2>
+
+                        <p class="lead mb-4">
+                            Tus tickets de rifa han sido comprados exitosamente.
+                        </p>
+
+                        <div class="alert alert-info d-flex align-items-start text-start">
+                            <i class="fas fa-info-circle me-3 mt-1 info-icon"></i>
+                            <div>
+                                <strong>¿Qué sigue?</strong>
+                                <ul class="mb-0 mt-2 ps-3">
+                                    <li>Recibirás un email de confirmación con tus números de ticket</li>
+                                    <li>Tus tickets están automáticamente participando en el sorteo</li>
+                                    <li>El ganador será anunciado en la fecha del sorteo</li>
+                                    <li>Revisa "Mis Tickets" para ver todas tus participaciones</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(RaffleIdParam))
+                        {
+                            <p class="text-muted small mb-4">
+                                <i class="fas fa-ticket-alt me-1"></i>
+                                Rifa ID: @RaffleIdParam
+                            </p>
+                        }
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success btn-lg" @onclick="@(() => Navigation.NavigateTo("/my-tickets"))">
+                                <i class="fas fa-list me-2"></i>
+                                Ver Mis Tickets
+                            </button>
+                            <button class="btn btn-outline-primary" @onclick="@(() => Navigation.NavigateTo("/"))">
+                                <i class="fas fa-home me-2"></i>
+                                Volver al Inicio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .payment-success-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .navbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .success-card {
+        border-radius: 15px;
+        border-top: 5px solid #28a745;
+    }
+
+    .success-title {
+        color: #28a745;
+        font-weight: 700;
+    }
+
+    .success-icon-circle {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 40px rgba(40, 167, 69, 0.3);
+        animation: pulse 2s infinite;
+    }
+
+    .success-icon-circle i {
+        font-size: 3rem;
+        color: white;
+    }
+
+    .info-icon {
+        font-size: 1.5rem;
+    }
+
+    @@keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 20px rgba(40, 167, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #218838 0%, #1aa179 100%);
+        transform: translateY(-2px);
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery(Name = "raffleId")]
+    public string? RaffleIdParam { get; set; }
+}

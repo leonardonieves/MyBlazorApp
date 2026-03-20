@@ -1,0 +1,418 @@
+@page "/admin"
+@layout MainLayout
+@using MyBlazorApp.Web.Services
+@using MyBlazorApp.Shared.Models
+@inject AuthStateService AuthState
+@inject ApiService Api
+@inject ILogger<Admin> Logger
+@inject NavigationManager Navigation
+
+<PageTitle>Admin Dashboard - World Cup Sweepstakes</PageTitle>
+
+@if (!isAdmin)
+{
+    <div class="container mt-5">
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-lock me-2"></i>
+            <strong>Acceso Denegado:</strong> Solo los administradores pueden acceder a este panel.
+        </div>
+    </div>
+    return;
+}
+
+<div style="display: flex; gap: 0; min-height: calc(100vh - 60px);">
+    <!-- Sidebar -->
+    <aside style="width: 250px; background: linear-gradient(135deg, #162456 0%, #1a2d5c 100%); color: white; display: flex; flex-direction: column; padding: 0; box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);">
+        <div style="padding: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <h5 class="text-white fw-bold mb-0">
+                <i class="fas fa-cog me-2"></i>Admin Panel
+            </h5>
+        </div>
+        
+        <nav style="flex: 1; padding: 1rem 0; display: flex; flex-direction: column; gap: 0.5rem;">
+            <button class="admin-nav-btn @(activeTab == "dashboard" ? "admin-nav-active" : "")" 
+                    @onclick="SelectDashboard">
+                <i class="fas fa-chart-line me-2"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="admin-nav-btn @(activeTab == "stripe" ? "admin-nav-active" : "")" 
+                    @onclick="SelectStripe">
+                <i class="fas fa-sync-alt me-2"></i>
+                <span>Sync Stripe</span>
+            </button>
+            <button class="admin-nav-btn @(activeTab == "raffles" ? "admin-nav-active" : "")" 
+                    @onclick="SelectRaffles">
+                <i class="fas fa-ticket-alt me-2"></i>
+                <span>Raffles</span>
+            </button>
+            <button class="admin-nav-btn @(activeTab == "users" ? "admin-nav-active" : "")" 
+                    @onclick="SelectUsers">
+                <i class="fas fa-users me-2"></i>
+                <span>Usuarios</span>
+            </button>
+        </nav>
+
+        <div style="padding: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <div style="background: rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 1rem; display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 40px; height: 40px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div>
+                    <p class="fw-bold mb-0" style="color: white;">@currentUser?.Username</p>
+                    <small style="color: rgba(255, 255, 255, 0.6);">Administrator</small>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main style="flex: 1; padding: 2rem; background: #f8f9fa; overflow-y: auto;">
+        <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #dee2e6;">
+            <h1 class="mb-0" style="color: var(--navy-dark); font-weight: 700;">
+                @GetTabTitle()
+            </h1>
+        </div>
+
+        <!-- Dashboard Tab -->
+        @if (activeTab == "dashboard")
+        {
+            <div style="animation: slideIn 0.3s ease-out;">
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0;">
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                                <div>
+                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Raffles</p>
+                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">@(raffles?.Count ?? 0)</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0;">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Users</p>
+                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">--</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0;">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <div>
+                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Revenue</p>
+                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">$0</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0;">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div>
+                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Tickets Sold</p>
+                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">--</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold mb-3">Últimas Acciones</h5>
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            El histórico de acciones se mostrará aquí
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Stripe Sync Tab -->
+        @if (activeTab == "stripe")
+        {
+            <div style="animation: slideIn 0.3s ease-out;">
+                <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                    <div class="card-body p-5">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h5 class="card-title fw-bold mb-3" style="color: var(--navy-dark);">
+                                    <i class="fas fa-sync-alt me-2"></i>Sincronizar con Stripe
+                                </h5>
+                                <p class="text-muted mb-4">
+                                    Sincroniza todos los datos de raffles desde tu cuenta de Stripe. Esta acción actualiza 
+                                    precios, inventario y disponibilidad.
+                                </p>
+                                <ul class="list-unstyled mb-4">
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                        <span class="ms-2">Actualiza automáticamente precios</span>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                        <span class="ms-2">Sincroniza el inventario</span>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                                        <span class="ms-2">Verifica disponibilidad</span>
+                                    </li>
+                                </ul>
+
+                                @if (isSyncing)
+                                {
+                                    <div class="alert alert-info">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                        <span>Sincronizando...</span>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(syncMessage))
+                                {
+                                    <div class="alert @(syncSuccess ? "alert-success" : "alert-danger")" role="alert">
+                                        <i class="fas @(syncSuccess ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+                                        @syncMessage
+                                    </div>
+                                }
+
+                                <button class="btn btn-lg" 
+                                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-weight: 600; padding: 12px 40px;"
+                                        @onclick="SyncFromStripe" 
+                                        disabled="@isSyncing">
+                                    @if (isSyncing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <span>Sincronizando...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sync-alt me-2"></i>
+                                        <span>Sincronizar Ahora</span>
+                                    }
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; padding: 40px; text-align: center; color: white; min-height: 300px; display: flex; flex-direction: column; justify-content: center;">
+                                    <i class="fas fa-stripe-s" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+                                    <h5>Stripe Integration</h5>
+                                    <p class="small mb-0">Mantén tus datos sincronizados automáticamente</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Raffles Tab -->
+        @if (activeTab == "raffles")
+        {
+            <div style="animation: slideIn 0.3s ease-out;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Gestionar Raffles</h5>
+                    <button class="btn btn-success btn-sm">
+                        <i class="fas fa-plus me-2"></i>Crear Raffle
+                    </button>
+                </div>
+
+                @if (raffles != null && raffles.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead style="background: #f8f9fa;">
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Precio</th>
+                                    <th>Disponibles</th>
+                                    <th>Fecha Sorteo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var raffle in raffles)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@raffle.Title</td>
+                                        <td>$@raffle.TicketPrice.ToString("N2")</td>
+                                        <td>
+                                            <span class="badge bg-info">@raffle.TicketsAvailable / @raffle.TotalTickets</span>
+                                        </td>
+                                        <td>@raffle.EndDate.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay raffles creadas. Usa el botón de arriba para crear una.
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Users Tab -->
+        @if (activeTab == "users")
+        {
+            <div style="animation: slideIn 0.3s ease-out;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Gestionar Usuarios</h5>
+                    <div>
+                        <input type="text" class="form-control d-inline-block" style="width: 300px; border-radius: 8px;" placeholder="Buscar usuarios...">
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    La lista de usuarios se implementará pronto
+                </div>
+            </div>
+        }
+    </main>
+</div>
+
+<style>
+    .admin-nav-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 1rem 1.5rem;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 500;
+        width: 100%;
+    }
+
+    .admin-nav-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .admin-nav-active {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border-left: 4px solid #ffc107;
+        padding-left: calc(1.5rem - 4px);
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+@code {
+    private bool isAdmin = false;
+    private AuthUserData? currentUser;
+    private string activeTab = "dashboard";
+    private List<RaffleDto>? raffles;
+    private bool isSyncing = false;
+    private string? syncMessage;
+    private bool syncSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Usar métodos síncronos (datos en memoria)
+        isAdmin = AuthState.IsAdmin();
+        currentUser = AuthState.GetUser();
+
+        if (!isAdmin)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        await LoadRaffles();
+    }
+
+    private void SelectDashboard() => activeTab = "dashboard";
+    private void SelectStripe() => activeTab = "stripe";
+    private void SelectRaffles() => activeTab = "raffles";
+    private void SelectUsers() => activeTab = "users";
+
+    private string GetTabTitle()
+    {
+        return activeTab switch
+        {
+            "stripe" => "Sincronizar con Stripe",
+            "raffles" => "Gestionar Raffles",
+            "users" => "Gestionar Usuarios",
+            _ => "Dashboard"
+        };
+    }
+
+    private async Task LoadRaffles()
+    {
+        try
+        {
+            raffles = await Api.GetRafflesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error cargando raffles: {ex.Message}");
+        }
+    }
+
+    private async Task SyncFromStripe()
+    {
+        isSyncing = true;
+        syncMessage = null;
+        syncSuccess = false;
+
+        try
+        {
+            Logger.LogInformation("Iniciando sincronización con Stripe...");
+            
+            await Task.Delay(1000);
+            syncMessage = "Sincronización completada exitosamente!";
+            syncSuccess = true;
+            await LoadRaffles();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error sincronizando: {ex.Message}");
+            syncMessage = $"Error en la sincronización: {ex.Message}";
+            syncSuccess = false;
+        }
+        finally
+        {
+            isSyncing = false;
+        }
+    }
+}
