@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Secrets and sensitive configuration
+appsettings.secrets.json
+appsettings.*.secrets.json
+.env
+.env.local
+
 # User-specific files
 *.rsuser
 *.suo
@@ -148,7 +154,13 @@ coverage*.xml
 coverage*.info
 
 # Visual Studio code coverage results
-*.coverage
+
+# Secrets and sensitive configuration
+appsettings.secrets.json
+appsettings.*.secrets.json
+.env
+.env.local
+
 *.coveragexml
 
 # NCrunch
