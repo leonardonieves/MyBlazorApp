@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using MyBlazorApp.Api.Models;
 using MyBlazorApp.Api.Models.DTOs;
 using MyBlazorApp.Api.Services;
+using SharedModels = MyBlazorApp.Shared.Models;
 
 namespace MyBlazorApp.Api.Controllers;
 

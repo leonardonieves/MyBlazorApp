@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MyBlazorApp.Api.Services;
 using MyBlazorApp.Api.Models;
-using MyBlazorApp.Api.Models.DTOs;
+using MyBlazorApp.Shared.Models;
 
 namespace MyBlazorApp.Api.Controllers;
 
@@ -10,6 +11,7 @@ namespace MyBlazorApp.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class SyncController : ControllerBase
 {
     private readonly StripeSyncService _syncService;
@@ -31,15 +33,15 @@ public class SyncController : ControllerBase
     /// Sync all Stripe products to local raffles
     /// </summary>
     [HttpPost("stripe")]
-    public async Task<ActionResult<SyncResult>> SyncFromStripe()
+    public async Task<ActionResult<SyncResponse>> SyncFromStripe()
     {
         try
         {
             _logger.LogInformation("Starting Stripe sync...");
-            
+
             var raffles = await _syncService.SyncProductsFromStripeAsync();
-            
-            return Ok(new SyncResult
+
+            return Ok(new SyncResponse
             {
                 Success = true,
                 Message = $"Synced {raffles.Count} raffles from Stripe",
@@ -57,7 +59,7 @@ public class SyncController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error syncing from Stripe");
-            return StatusCode(500, new SyncResult
+            return StatusCode(500, new SyncResponse
             {
                 Success = false,
                 Message = $"Error syncing from Stripe: {ex.Message}"
@@ -142,23 +144,9 @@ public class SyncController : ControllerBase
     }
 }
 
-public class SyncResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public int SyncedCount { get; set; }
-    public List<SyncedRaffleInfo> Raffles { get; set; } = new();
-}
-
-public class SyncedRaffleInfo
-{
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string? StripeProductId { get; set; }
-    public int TotalTickets { get; set; }
-    public decimal TicketPrice { get; set; }
-}
-
+/// <summary>
+/// Sync status DTO
+/// </summary>
 public class SyncStatus
 {
     public int TotalRaffles { get; set; }

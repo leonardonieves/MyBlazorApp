@@ -101,12 +101,53 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.PostAsync("admin/sync-stripe", null);
-            return await response.Content.ReadFromJsonAsync<SyncResponse>() ?? new SyncResponse { Success = false, Message = "Error de conexión" };
+            var response = await _httpClient.PostAsync("sync/stripe", null);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<SyncResponse>() 
+                    ?? new SyncResponse { Success = false, Message = "Error parsing response" };
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync();
+            return new SyncResponse 
+            { 
+                Success = false, 
+                Message = $"Error: {response.StatusCode} - {errorContent}" 
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SyncResponse { Success = false, Message = $"Error de conexión: {ex.Message}" };
+        }
+    }
+
+    /// <summary>
+    /// Get sync status from the API
+    /// </summary>
+    public async Task<SyncStatusResponse?> GetSyncStatusAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<SyncStatusResponse>("sync/status");
         }
         catch
         {
-            return new SyncResponse { Success = false, Message = "Error de conexión" };
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Get Stripe products for debugging
+    /// </summary>
+    public async Task<List<object>?> GetStripeProductsAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<List<object>>("sync/stripe-products");
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -119,5 +160,126 @@ public class ApiService
     public void ClearAuthToken()
     {
         _httpClient.DefaultRequestHeaders.Authorization = null;
+    }
+
+    // Payment endpoints
+    public async Task<List<PaymentDto>> GetMyPaymentsAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<List<PaymentDto>>("payments/my") ?? new List<PaymentDto>();
+        }
+        catch
+        {
+            return new List<PaymentDto>();
+        }
+    }
+
+    // Raffle Tickets Visual Selector
+    public async Task<List<TicketStatusDto>> GetRaffleTicketStatusesAsync(int raffleId)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<List<TicketStatusDto>>($"tickets/raffle/{raffleId}/statuses") ?? new List<TicketStatusDto>();
+        }
+        catch
+        {
+            return new List<TicketStatusDto>();
+        }
+    }
+
+    // Reserve tickets
+    public async Task<ReserveTicketsResponse> ReserveTicketsAsync(int raffleId, int userId, List<int> ticketIds)
+    {
+        try
+        {
+            var request = new { RaffleId = raffleId, UserId = userId, TicketIds = ticketIds };
+            var response = await _httpClient.PostAsJsonAsync("tickets/reserve", request);
+            return await response.Content.ReadFromJsonAsync<ReserveTicketsResponse>() 
+                ?? new ReserveTicketsResponse { Success = false, Message = "Error parsing response" };
+        }
+        catch (Exception ex)
+        {
+            return new ReserveTicketsResponse { Success = false, Message = ex.Message };
+        }
+    }
+
+    // Release reservation
+    public async Task<bool> ReleaseReservationAsync(int raffleId, int userId, List<int>? ticketIds = null)
+    {
+        try
+        {
+            var request = new { RaffleId = raffleId, UserId = userId, TicketIds = ticketIds };
+            var response = await _httpClient.PostAsJsonAsync("tickets/release", request);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // Buy specific tickets (with selection)
+    public async Task<BuyTicketResponse> BuySelectedTicketsAsync(int raffleId, int userId, List<int> ticketIds, string buyerEmail, string? buyerName, string successUrl, string cancelUrl)
+    {
+        try
+        {
+            var request = new 
+            { 
+                RaffleId = raffleId, 
+                UserId = userId, 
+                TicketIds = ticketIds,
+                BuyerEmail = buyerEmail,
+                BuyerName = buyerName,
+                SuccessUrl = successUrl,
+                CancelUrl = cancelUrl
+            };
+            var response = await _httpClient.PostAsJsonAsync("tickets/buy-selected", request);
+            return await response.Content.ReadFromJsonAsync<BuyTicketResponse>() 
+                ?? new BuyTicketResponse { Success = false, ErrorMessage = "Error parsing response" };
+        }
+        catch (Exception ex)
+        {
+            return new BuyTicketResponse { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    // Get featured raffles
+    public async Task<List<RaffleDto>> GetFeaturedRafflesAsync(int count = 3)
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<List<RaffleDto>>($"raffles/featured?count={count}") ?? new List<RaffleDto>();
+        }
+        catch
+        {
+            return new List<RaffleDto>();
+        }
+    }
+
+    // Admin: Get all users
+    public async Task<List<UserDto>> GetAllUsersAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<List<UserDto>>("admin/users") ?? new List<UserDto>();
+        }
+        catch
+        {
+            return new List<UserDto>();
+        }
+    }
+
+    // Admin: Get all payments
+    public async Task<List<PaymentDto>> GetAllPaymentsAsync()
+    {
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<List<PaymentDto>>("admin/payments") ?? new List<PaymentDto>();
+        }
+        catch
+        {
+            return new List<PaymentDto>();
+        }
     }
 }

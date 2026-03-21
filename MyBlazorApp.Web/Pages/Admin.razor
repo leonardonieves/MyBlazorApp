@@ -86,7 +86,7 @@
                                 </div>
                                 <div>
                                     <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Raffles</p>
-                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">@(raffles?.Count ?? 0)</h3>
+                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">@(syncStatus?.TotalRaffles ?? raffles?.Count ?? 0)</h3>
                                 </div>
                             </div>
                         </div>
@@ -95,11 +95,11 @@
                         <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
                             <div class="card-body d-flex align-items-center gap-3">
                                 <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0;">
-                                    <i class="fas fa-users"></i>
+                                    <i class="fas fa-ticket"></i>
                                 </div>
                                 <div>
-                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Users</p>
-                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">--</h3>
+                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Tickets Generados</p>
+                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">@(syncStatus?.TotalTicketsGenerated ?? 0)</h3>
                                 </div>
                             </div>
                         </div>
@@ -108,11 +108,11 @@
                         <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
                             <div class="card-body d-flex align-items-center gap-3">
                                 <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0;">
-                                    <i class="fas fa-dollar-sign"></i>
+                                    <i class="fas fa-shopping-cart"></i>
                                 </div>
                                 <div>
-                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Revenue</p>
-                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">$0</h3>
+                                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Tickets Vendidos</p>
+                                    <h3 style="font-size: 1.8rem; color: var(--navy-dark); margin: 0.5rem 0 0 0; font-weight: 700;">@(syncStatus?.TotalTicketsSold ?? 0)</h3>
                                 </div>
                             </div>
                         </div>
@@ -184,7 +184,7 @@
 
                                 @if (!string.IsNullOrEmpty(syncMessage))
                                 {
-                                    <div class="alert @(syncSuccess ? "alert-success" : "alert-danger")" role="alert">
+                                    <div class="alert @(syncSuccess ? "alert-success" : "alert-danger")" role="alert" style="white-space: pre-line;">
                                         <i class="fas @(syncSuccess ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
                                         @syncMessage
                                     </div>
@@ -342,6 +342,7 @@
     private AuthUserData? currentUser;
     private string activeTab = "dashboard";
     private List<RaffleDto>? raffles;
+    private SyncStatusResponse? syncStatus;
     private bool isSyncing = false;
     private string? syncMessage;
     private bool syncSuccess = false;
@@ -359,6 +360,19 @@
         }
 
         await LoadRaffles();
+        await LoadSyncStatus();
+    }
+
+    private async Task LoadSyncStatus()
+    {
+        try
+        {
+            syncStatus = await Api.GetSyncStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error cargando estado de sync: {ex.Message}");
+        }
     }
 
     private void SelectDashboard() => activeTab = "dashboard";
@@ -398,11 +412,29 @@
         try
         {
             Logger.LogInformation("Iniciando sincronización con Stripe...");
-            
-            await Task.Delay(1000);
-            syncMessage = "Sincronización completada exitosamente!";
-            syncSuccess = true;
-            await LoadRaffles();
+
+            var result = await Api.SyncFromStripeAsync();
+
+            if (result.Success)
+            {
+                syncMessage = $"✅ {result.Message}";
+                if (result.Raffles?.Any() == true)
+                {
+                    syncMessage += $"\n\nRifas sincronizadas:\n";
+                    foreach (var raffle in result.Raffles)
+                    {
+                        syncMessage += $"• {raffle.Title} - {raffle.TotalTickets} tickets @ ${raffle.TicketPrice}\n";
+                    }
+                }
+                syncSuccess = true;
+                await LoadRaffles();
+                await LoadSyncStatus();
+            }
+            else
+            {
+                syncMessage = $"❌ {result.Message}";
+                syncSuccess = false;
+            }
         }
         catch (Exception ex)
         {

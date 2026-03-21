@@ -68,6 +68,10 @@ builder.Services.AddScoped<RaffleService>();
 builder.Services.AddScoped<StripeService>();
 builder.Services.AddScoped<StripeSyncService>();
 builder.Services.AddScoped<StripeWebhookService>();
+builder.Services.AddScoped<PaymentService>();
+
+// Add hosted service for expired reservation cleanup
+builder.Services.AddHostedService<ReservationCleanupService>();
 
 // Configure Stripe
 Stripe.StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
@@ -78,10 +82,45 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    // Seed demo users if they don't exist
-    await SeedDemoUsers(db);
+    try
+    {
+        // Check if database exists and tables are created
+        // If using existing database with tables, don't run migrations
+        var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+        var appliedMigrations = await db.Database.GetAppliedMigrationsAsync();
+
+        if (!appliedMigrations.Any() && await db.Database.CanConnectAsync())
+        {
+            // Database exists but no migrations recorded - this is an existing database
+            // Just ensure we can connect, don't try to migrate
+            logger.LogInformation("Database exists with tables. Skipping migrations.");
+        }
+        else if (pendingMigrations.Any())
+        {
+            // There are pending migrations to apply
+            logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
+            await db.Database.MigrateAsync();
+        }
+
+        // Seed demo users if they don't exist
+        await SeedDemoUsers(db);
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Database migration skipped. Tables may already exist.");
+
+        // Still try to seed users
+        try
+        {
+            await SeedDemoUsers(db);
+        }
+        catch (Exception seedEx)
+        {
+            logger.LogWarning(seedEx, "User seeding skipped.");
+        }
+    }
 }
 
 // Configure the HTTP request pipeline
