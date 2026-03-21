@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MyBlazorApp.Api.Models;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MyBlazorApp.Api.Data;
 
@@ -95,6 +97,9 @@ public class AppDbContext : DbContext
             new Role { Id = 1, Name = "Admin" },
             new Role { Id = 2, Name = "Basic" }
         );
+
+        // Note: User seeding is done in Program.cs during app startup to avoid
+        // issues with password hashing in EF Core migrations
 
         // Raffles
         modelBuilder.Entity<Raffle>(entity =>
@@ -196,6 +201,18 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.RaffleId).IsUnique();
             entity.HasIndex(e => e.TicketId).IsUnique();
         });
+    }
+
+    /// <summary>
+    /// Hash a password using SHA256
+    /// </summary>
+    private static string HashPassword(string password)
+    {
+        using (var sha256 = SHA256.Create())
+        {
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashedBytes);
+        }
     }
 }
 

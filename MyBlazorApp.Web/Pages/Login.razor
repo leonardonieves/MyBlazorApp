@@ -5,6 +5,16 @@
 
 <PageTitle>Login - World Cup Sweepstakes</PageTitle>
 
+@if (!isReady)
+{
+    <div style="display: flex; justify-content: center; align-items: center; height: 50vh;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
 <div class="login-page">
     <div class="container py-5">
         <div class="row justify-content-center">
@@ -27,7 +37,7 @@
                         <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Username</label>
-                                <InputText class="form-control form-control-lg" 
+                                <InputText class="form-control form-control-lg"
                                            @bind-Value="loginModel.Username" 
                                            placeholder="Enter username"
                                            disabled="@isLoading" />
@@ -75,21 +85,27 @@
         </div>
     </div>
 </div>
+}
 
 @code {
     private LoginRequest loginModel = new();
     private string? errorMessage;
     private bool isLoading = false;
+    private bool isReady = false;
 
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        if (AuthState.IsAuthenticated)
+        // Verificar si ya está autenticado y tiene un usuario válido
+        var user = await AuthState.GetUserAsync();
+        if (AuthState.IsAuthenticated && user != null)
         {
             Navigation.NavigateTo(ReturnUrl ?? "/");
+            return;
         }
+        isReady = true;
     }
 
     private async Task HandleLogin()

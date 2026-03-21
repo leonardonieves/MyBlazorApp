@@ -1,9 +1,20 @@
 @page "/register"
 @inject ApiService Api
+@inject AuthStateService AuthState
 @inject NavigationManager Navigation
 
 <PageTitle>Register - World Cup Sweepstakes</PageTitle>
 
+@if (!isReady)
+{
+    <div style="display: flex; justify-content: center; align-items: center; height: 50vh;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
 <div class="register-page">
     <div class="container py-5">
         <div class="row justify-content-center">
@@ -85,12 +96,26 @@
         </div>
     </div>
 </div>
+}
 
 @code {
     private RegisterRequest registerModel = new();
     private string? errorMessage;
     private string? successMessage;
     private bool isLoading = false;
+    private bool isReady = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Si ya está autenticado, redirigir al home
+        var user = await AuthState.GetUserAsync();
+        if (AuthState.IsAuthenticated && user != null)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+        isReady = true;
+    }
 
     private async Task HandleRegister()
     {

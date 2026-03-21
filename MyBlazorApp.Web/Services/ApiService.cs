@@ -12,20 +12,22 @@ public class ApiService
     public ApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _baseUrl = configuration["ApiBaseUrl"] ?? "https://localhost:7267/api";
-        _httpClient.BaseAddress = new Uri(_baseUrl);
+        _baseUrl = configuration["ApiBaseUrl"] ?? "https://localhost:7133/api/";
+        // Asegurar que BaseAddress termine en / para que funcione correctamente con rutas relativas
+        var baseAddress = _baseUrl.EndsWith("/") ? _baseUrl : _baseUrl + "/";
+        _httpClient.BaseAddress = new Uri(baseAddress);
     }
 
     // Auth endpoints
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
-        var response = await _httpClient.PostAsJsonAsync("/auth/login", request);
+        var response = await _httpClient.PostAsJsonAsync("auth/login", request);
         return await response.Content.ReadFromJsonAsync<AuthResponse>() ?? new AuthResponse { Success = false, Message = "Error de conexión" };
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
-        var response = await _httpClient.PostAsJsonAsync("/auth/register", request);
+        var response = await _httpClient.PostAsJsonAsync("auth/register", request);
         return await response.Content.ReadFromJsonAsync<AuthResponse>() ?? new AuthResponse { Success = false, Message = "Error de conexión" };
     }
 
@@ -34,7 +36,7 @@ public class ApiService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<RaffleDto>>("/raffles") ?? new List<RaffleDto>();
+            return await _httpClient.GetFromJsonAsync<List<RaffleDto>>("raffles") ?? new List<RaffleDto>();
         }
         catch
         {
@@ -46,7 +48,7 @@ public class ApiService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<RaffleDto>($"/raffles/{id}");
+            return await _httpClient.GetFromJsonAsync<RaffleDto>($"raffles/{id}");
         }
         catch
         {
@@ -61,7 +63,7 @@ public class ApiService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<TicketDto>>("/tickets/my") ?? new List<TicketDto>();
+            return await _httpClient.GetFromJsonAsync<List<TicketDto>>("tickets/my") ?? new List<TicketDto>();
         }
         catch
         {
@@ -73,7 +75,7 @@ public class ApiService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<TicketDto>>($"/tickets/user/{userId}") ?? new List<TicketDto>();
+            return await _httpClient.GetFromJsonAsync<List<TicketDto>>($"tickets/user/{userId}") ?? new List<TicketDto>();
         }
         catch
         {
@@ -85,7 +87,7 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/tickets/buy", request);
+            var response = await _httpClient.PostAsJsonAsync("tickets/buy", request);
             return await response.Content.ReadFromJsonAsync<BuyTicketResponse>() ?? new BuyTicketResponse { Success = false, ErrorMessage = "Error de conexión" };
         }
         catch
@@ -99,7 +101,7 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.PostAsync("/admin/sync-stripe", null);
+            var response = await _httpClient.PostAsync("admin/sync-stripe", null);
             return await response.Content.ReadFromJsonAsync<SyncResponse>() ?? new SyncResponse { Success = false, Message = "Error de conexión" };
         }
         catch

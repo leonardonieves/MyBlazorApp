@@ -1,14 +1,48 @@
 ﻿@using MyBlazorApp.Web.Layout
+@using MyBlazorApp.Web.Services
+@inject AuthStateService AuthState
 
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+@if (isInitialized)
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+else
+{
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #162456 0%, #1a2d5c 100%);">
+        <div style="text-align: center; color: white;">
+            <div class="spinner-border text-warning" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p style="margin-top: 1rem; font-size: 1.1rem;">Loading...</p>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await AuthState.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error initializing auth: {ex.Message}");
+        }
+        finally
+        {
+            isInitialized = true;
+        }
+    }
+}
