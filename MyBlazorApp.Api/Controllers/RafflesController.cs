@@ -37,12 +37,33 @@ public class RafflesController : ControllerBase
         try
         {
             var raffles = await _raffleService.GetActiveRafflesAsync();
+            _logger.LogInformation("GetRaffles: Found {Count} active raffles", raffles.Count);
             var raffleDtos = raffles.Select(r => r.ToDto()).ToList();
             return Ok(raffleDtos);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting raffles");
+            return StatusCode(500, new { error = "Error fetching raffles" });
+        }
+    }
+
+    /// <summary>
+    /// GET: api/raffles/all
+    /// Get ALL raffles (debug endpoint - no filters)
+    /// </summary>
+    [HttpGet("all")]
+    public async Task<ActionResult<List<RaffleDto>>> GetAllRaffles()
+    {
+        try
+        {
+            var raffles = await _raffleService.GetAllRafflesAsync();
+            _logger.LogInformation("GetAllRaffles: Found {Count} total raffles", raffles.Count);
+            return Ok(raffles.Select(r => r.ToDto()).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all raffles");
             return StatusCode(500, new { error = "Error fetching raffles" });
         }
     }

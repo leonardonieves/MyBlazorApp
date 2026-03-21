@@ -36,10 +36,29 @@ public class ApiService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<RaffleDto>>("raffles") ?? new List<RaffleDto>();
+            var result = await _httpClient.GetFromJsonAsync<List<RaffleDto>>("raffles");
+            Console.WriteLine($"GetRafflesAsync: Got {result?.Count ?? 0} raffles from API");
+            return result ?? new List<RaffleDto>();
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"GetRafflesAsync ERROR: {ex.Message}");
+            return new List<RaffleDto>();
+        }
+    }
+
+    // Debug: Get ALL raffles without filters
+    public async Task<List<RaffleDto>> GetAllRafflesAsync()
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<RaffleDto>>("raffles/all");
+            Console.WriteLine($"GetAllRafflesAsync: Got {result?.Count ?? 0} raffles from API");
+            return result ?? new List<RaffleDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"GetAllRafflesAsync ERROR: {ex.Message}");
             return new List<RaffleDto>();
         }
     }

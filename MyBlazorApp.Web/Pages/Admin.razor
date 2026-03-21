@@ -252,7 +252,7 @@
                                         <td>
                                             <span class="badge bg-info">@raffle.TicketsAvailable / @raffle.TotalTickets</span>
                                         </td>
-                                        <td>@raffle.EndDate.ToString("dd/MM/yyyy")</td>
+                                        <td>@raffle.DrawDate.ToString("dd/MM/yyyy")</td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-primary" title="Editar">
                                                 <i class="fas fa-edit"></i>
@@ -395,7 +395,8 @@
     {
         try
         {
-            raffles = await Api.GetRafflesAsync();
+            // Admin should see ALL raffles, not just active ones
+            raffles = await Api.GetAllRafflesAsync();
         }
         catch (Exception ex)
         {

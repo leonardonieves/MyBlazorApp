@@ -20,26 +20,54 @@ public class RaffleService
 
     #region Raffle CRUD Operations
 
-    /// <summary>
-    /// Get all active raffles that are available for purchase
-    /// </summary>
-    public async Task<List<Raffle>> GetActiveRafflesAsync()
-    {
-        return await _context.Raffles
-            .Where(r => r.Status == RaffleStatus.Active && 
-                        r.SalesEndDate > DateTime.UtcNow &&
-                        r.SalesStartDate <= DateTime.UtcNow)
-            .Include(r => r.Prizes.OrderBy(p => p.DisplayOrder))
-            .Include(r => r.Images.OrderBy(i => i.DisplayOrder))
-            .OrderByDescending(r => r.IsFeatured)
-            .ThenBy(r => r.DrawDate)
-            .ToListAsync();
-    }
+        /// <summary>
+        /// Get all active raffles that are available for purchase
+        /// Filters: Status must be Active AND DrawDate must be in the future
+        /// </summary>
+        public async Task<List<Raffle>> GetActiveRafflesAsync()
+        {
+            var now = DateTime.UtcNow;
 
-    /// <summary>
-    /// Get featured raffles
-    /// </summary>
-    public async Task<List<Raffle>> GetFeaturedRafflesAsync(int count = 3)
+            _logger.LogInformation("GetActiveRafflesAsync: Checking raffles at {Now}", now);
+
+            // First, log what's in the database for debugging
+            var allRaffles = await _context.Raffles.ToListAsync();
+            foreach (var r in allRaffles)
+            {
+                _logger.LogInformation("Raffle {Id}: Status={Status}, DrawDate={DrawDate}, SalesStart={SalesStart}, SalesEnd={SalesEnd}",
+                    r.Id, r.Status, r.DrawDate, r.SalesStartDate, r.SalesEndDate);
+            }
+
+            // Filter: Active status and draw date hasn't passed yet
+            var activeRaffles = await _context.Raffles
+                .Where(r => r.Status == RaffleStatus.Active && r.DrawDate > now)
+                .Include(r => r.Prizes.OrderBy(p => p.DisplayOrder))
+                .Include(r => r.Images.OrderBy(i => i.DisplayOrder))
+                .OrderByDescending(r => r.IsFeatured)
+                .ThenBy(r => r.DrawDate)
+                .ToListAsync();
+
+            _logger.LogInformation("GetActiveRafflesAsync: Found {Count} active raffles", activeRaffles.Count);
+
+            return activeRaffles;
+        }
+
+        /// <summary>
+        /// Get ALL raffles without filters (for debugging)
+        /// </summary>
+        public async Task<List<Raffle>> GetAllRafflesAsync()
+        {
+            return await _context.Raffles
+                .Include(r => r.Prizes.OrderBy(p => p.DisplayOrder))
+                .Include(r => r.Images.OrderBy(i => i.DisplayOrder))
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Get featured raffles
+        /// </summary>
+        public async Task<List<Raffle>> GetFeaturedRafflesAsync(int count = 3)
     {
         return await _context.Raffles
             .Where(r => r.Status == RaffleStatus.Active && 
