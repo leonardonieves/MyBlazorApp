@@ -21,6 +21,13 @@
 
     <!-- Card Body -->
     <div class="raffle-card-body">
+        <!-- Full Description -->
+        @if (!string.IsNullOrEmpty(FullDescription))
+        {
+            <div class="raffle-description mb-3">
+                <p class="text-muted small">@FullDescription</p>
+            </div>
+        }
         <!-- Tickets Progress -->
         @if (TotalTickets > 0)
         {
@@ -91,6 +98,9 @@
 
     [Parameter]
     public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string FullDescription { get; set; } = string.Empty;
 
     [Parameter]
     public string ImageUrl { get; set; } = string.Empty;

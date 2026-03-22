@@ -37,6 +37,7 @@ public class RafflePrizeDto
     public int Id { get; set; }
     public string Description { get; set; } = string.Empty;
     public string Icon { get; set; } = "fas fa-gift";
+    public int DisplayOrder { get; set; } = 0;
 }
 
 /// <summary>

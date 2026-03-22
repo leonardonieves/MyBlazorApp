@@ -15,15 +15,13 @@ MyBlazorApp/
 │
 ├── MyBlazorApp.Web/          # Frontend - Blazor WebAssembly
 │   ├── Components/           # Componentes reutilizables
+│   ├── Layout/               # Layouts de la aplicación
 │   ├── Pages/                # Páginas/Rutas
 │   ├── Services/             # Servicios cliente (ApiService, AuthState)
 │   └── wwwroot/              # Archivos estáticos y appsettings.json
 │
-├── MyBlazorApp.Shared/       # Biblioteca compartida
-│   └── Models/               # DTOs compartidos entre API y Web
-│
-└── MyBlazorApp/              # [LEGACY - No usar]
-    └── ...                   # Proyecto original, mantener solo como referencia
+└── MyBlazorApp.Shared/       # Biblioteca compartida
+    └── Models/               # DTOs compartidos entre API y Web
 ```
 
 ## Arquitectura
