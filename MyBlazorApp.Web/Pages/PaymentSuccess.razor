@@ -1,20 +1,15 @@
 @page "/payment-success"
+@layout RaffleLayout
 @using MyBlazorApp.Web.Services
 @using MyBlazorApp.Shared.Models
 @inject NavigationManager Navigation
 @inject ApiService Api
 @inject AuthStateService AuthState
+@inject ILogger<PaymentSuccess> Logger
 
 <PageTitle>Payment Successful - World Cup Sweepstakes</PageTitle>
 
 <div class="payment-success-page">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">🎟️ World Cup Sweepstakes</a>
-        </div>
-    </nav>
-
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-7 col-lg-6">
@@ -35,6 +30,24 @@
                         <p class="lead mb-4">
                             Your raffle tickets have been purchased successfully.
                         </p>
+
+                        @if (isVerifying)
+                        {
+                            <div class="alert alert-info d-flex align-items-center">
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Verifying your payment and assigning tickets...</span>
+                            </div>
+                        }
+                        else if (verificationResult != null && verificationResult.Success)
+                        {
+                            <div class="alert alert-success d-flex align-items-start text-start">
+                                <i class="fas fa-check-circle me-3 mt-1" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <strong>Tickets Confirmed!</strong>
+                                    <p class="mb-0 mt-1">@verificationResult.TicketsAssigned ticket(s) have been assigned to your account.</p>
+                                </div>
+                            </div>
+                        }
 
                         <div class="alert alert-info d-flex align-items-start text-start">
                             <i class="fas fa-info-circle me-3 mt-1 info-icon"></i>
@@ -63,7 +76,14 @@
                                 <i class="fas fa-list me-2"></i>
                                 View My Tickets
                             </button>
-                            <button class="btn btn-outline-primary" @onclick="@(() => Navigation.NavigateTo("/"))">
+                            @if (!string.IsNullOrEmpty(RaffleIdParam))
+                            {
+                                <button class="btn btn-outline-primary" @onclick="@(() => Navigation.NavigateTo($"/raffle/{RaffleIdParam}"))">
+                                    <i class="fas fa-ticket-alt me-2"></i>
+                                    Back to Raffle
+                                </button>
+                            }
+                            <button class="btn btn-outline-secondary" @onclick="@(() => Navigation.NavigateTo("/"))">
                                 <i class="fas fa-home me-2"></i>
                                 Return to Home
                             </button>
@@ -142,4 +162,41 @@
 @code {
     [SupplyParameterFromQuery(Name = "raffleId")]
     public string? RaffleIdParam { get; set; }
+
+    [SupplyParameterFromQuery(Name = "session_id")]
+    public string? SessionId { get; set; }
+
+    private bool isVerifying = false;
+    private VerifyPaymentResponse? verificationResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // If we have a session_id, verify the payment and ensure tickets are assigned
+        if (!string.IsNullOrEmpty(SessionId))
+        {
+            await VerifyPayment();
+        }
+    }
+
+    private async Task VerifyPayment()
+    {
+        isVerifying = true;
+        StateHasChanged();
+
+        try
+        {
+            verificationResult = await Api.VerifyPaymentAsync(SessionId!);
+            Logger.LogInformation("Payment verification result: {Success}, Tickets: {Count}", 
+                verificationResult.Success, verificationResult.TicketsAssigned);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error verifying payment for session {SessionId}", SessionId);
+        }
+        finally
+        {
+            isVerifying = false;
+            StateHasChanged();
+        }
+    }
 }

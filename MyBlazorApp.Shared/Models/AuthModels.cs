@@ -137,3 +137,14 @@ public class UserDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+/// <summary>
+/// Response for payment verification
+/// </summary>
+public class VerifyPaymentResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public bool AlreadyProcessed { get; set; }
+    public int TicketsAssigned { get; set; }
+}

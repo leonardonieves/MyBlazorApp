@@ -208,25 +208,26 @@ public class StripeWebhookService
             }
             else
             {
-                // Legacy: quantity-based purchase (no pre-selection)
+                // Quantity-based purchase - assign available pre-generated tickets
                 var quantity = metadata.ContainsKey("quantity") ? int.Parse(metadata["quantity"]) : 1;
 
-                _logger.LogInformation("Creating {Quantity} raffle tickets for raffle {RaffleId}, buyer: {BuyerEmail}, user: {UserId}", 
+                _logger.LogInformation("Assigning {Quantity} pre-generated raffle tickets for raffle {RaffleId}, buyer: {BuyerEmail}, user: {UserId}", 
                     quantity, raffleId, buyerEmail, userId);
 
-                // Create tickets using the old bulk method
-                var tickets = await _raffleService.CreateTicketsAsync(
+                // Use pre-generated tickets instead of creating new ones
+                var syncService = GetSyncService();
+                var tickets = await syncService.ConfirmTicketsByQuantityAsync(
                     raffleId: raffleId,
                     userId: userId,
-                    email: buyerEmail,
-                    name: buyerName,
                     quantity: quantity,
                     paymentIntentId: session.PaymentIntentId ?? "",
                     sessionId: session.Id,
+                    buyerEmail: buyerEmail,
+                    buyerName: buyerName,
                     amountPaid: amountPaid
                 );
 
-                _logger.LogInformation("Successfully created {Count} tickets for raffle {RaffleId}", 
+                _logger.LogInformation("Successfully assigned {Count} tickets for raffle {RaffleId}", 
                     tickets.Count, raffleId);
             }
         }

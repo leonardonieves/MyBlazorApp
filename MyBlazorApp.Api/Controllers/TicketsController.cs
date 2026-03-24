@@ -394,6 +394,35 @@ public class TicketsController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// POST: api/tickets/verify-payment
+    /// Verify a Stripe checkout session and process tickets if payment is complete.
+    /// Safety net when webhooks are delayed or missed.
+    /// </summary>
+    [HttpPost("verify-payment")]
+    public async Task<ActionResult<VerifyPaymentResult>> VerifyPayment([FromBody] VerifyPaymentRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(request.SessionId))
+                return BadRequest(new VerifyPaymentResult { Success = false, Message = "Session ID is required" });
+
+            _logger.LogInformation("Verifying payment for session {SessionId}", request.SessionId);
+
+            var result = await _syncService.VerifyAndProcessPaymentAsync(request.SessionId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error verifying payment for session {SessionId}", request.SessionId);
+            return StatusCode(500, new VerifyPaymentResult
+            {
+                Success = false,
+                Message = "Error verifying payment"
+            });
+        }
+    }
 }
 
 /// <summary>
@@ -414,4 +443,12 @@ public class ReleaseTicketsRequest
     public int RaffleId { get; set; }
     public int UserId { get; set; }
     public List<int>? TicketIds { get; set; }
+}
+
+/// <summary>
+/// Request to verify a Stripe payment session
+/// </summary>
+public class VerifyPaymentRequest
+{
+    public string SessionId { get; set; } = string.Empty;
 }

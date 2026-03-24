@@ -173,6 +173,13 @@ public class StripeService
     {
         try
         {
+            // Append session_id to success URL for post-payment verification
+            if (!successUrl.Contains("session_id"))
+            {
+                var separator = successUrl.Contains("?") ? "&" : "?";
+                successUrl += $"{separator}session_id={{CHECKOUT_SESSION_ID}}";
+            }
+
             var lineItems = new List<SessionLineItemOptions>();
 
             // Use existing Stripe Price if available, otherwise create inline price
@@ -480,6 +487,13 @@ public class StripeService
     {
         try
         {
+            // Append session_id to success URL for post-payment verification
+            if (!successUrl.Contains("session_id"))
+            {
+                var separator = successUrl.Contains("?") ? "&" : "?";
+                successUrl += $"{separator}session_id={{CHECKOUT_SESSION_ID}}";
+            }
+
             var quantity = ticketIds.Count;
             var lineItems = new List<SessionLineItemOptions>();
 

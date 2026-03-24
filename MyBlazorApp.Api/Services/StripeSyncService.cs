@@ -491,7 +491,7 @@ public class StripeSyncService
     }
 
     /// <summary>
-    /// Confirm ticket purchase (called from webhook)
+    /// Confirm ticket purchase (called from webhook) for pre-selected tickets
     /// </summary>
     public async Task<List<Ticket>> ConfirmTicketPurchaseAsync(
         int raffleId, 
@@ -503,6 +503,21 @@ public class StripeSyncService
         string? buyerName,
         decimal amountPaid)
     {
+        // Check if this session was already processed (prevent duplicates)
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            var alreadyProcessed = await _context.Tickets
+                .AnyAsync(t => t.RaffleId == raffleId && t.StripeSessionId == sessionId && t.Status == TicketStatus.Sold);
+
+            if (alreadyProcessed)
+            {
+                _logger.LogInformation("Session {SessionId} already processed for raffle {RaffleId}", sessionId, raffleId);
+                return await _context.Tickets
+                    .Where(t => t.RaffleId == raffleId && t.StripeSessionId == sessionId)
+                    .ToListAsync();
+            }
+        }
+
         var tickets = await _context.Tickets
             .Where(t => t.RaffleId == raffleId && ticketIds.Contains(t.Id))
             .ToListAsync();
@@ -542,6 +557,160 @@ public class StripeSyncService
             tickets.Count, userId, raffleId);
 
         return tickets;
+    }
+
+    /// <summary>
+    /// Confirm ticket purchase by quantity - assigns available pre-generated tickets.
+    /// Called from webhook for quantity-based purchases (no pre-selection).
+    /// </summary>
+    public async Task<List<Ticket>> ConfirmTicketsByQuantityAsync(
+        int raffleId,
+        int userId,
+        int quantity,
+        string paymentIntentId,
+        string? sessionId,
+        string buyerEmail,
+        string? buyerName,
+        decimal amountPaid)
+    {
+        // Check if this session was already processed (prevent duplicates)
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            var alreadyProcessed = await _context.Tickets
+                .AnyAsync(t => t.RaffleId == raffleId && t.StripeSessionId == sessionId && t.Status == TicketStatus.Sold);
+
+            if (alreadyProcessed)
+            {
+                _logger.LogInformation("Session {SessionId} already processed for raffle {RaffleId}", sessionId, raffleId);
+                return await _context.Tickets
+                    .Where(t => t.RaffleId == raffleId && t.StripeSessionId == sessionId)
+                    .ToListAsync();
+            }
+        }
+
+        // Find available pre-generated tickets
+        var availableTickets = await _context.Tickets
+            .Where(t => t.RaffleId == raffleId && t.Status == TicketStatus.Available)
+            .OrderBy(t => t.Id)
+            .Take(quantity)
+            .ToListAsync();
+
+        if (!availableTickets.Any())
+        {
+            _logger.LogWarning("No available pre-generated tickets for raffle {RaffleId}. Requested: {Quantity}", raffleId, quantity);
+            return new List<Ticket>();
+        }
+
+        if (availableTickets.Count < quantity)
+        {
+            _logger.LogWarning("Not enough available tickets for raffle {RaffleId}. Requested: {Quantity}, Available: {Count}",
+                raffleId, quantity, availableTickets.Count);
+        }
+
+        var now = DateTime.UtcNow;
+        var pricePerTicket = availableTickets.Count > 0 ? amountPaid / availableTickets.Count : 0;
+
+        foreach (var ticket in availableTickets)
+        {
+            ticket.Status = TicketStatus.Sold;
+            ticket.UserId = userId;
+            ticket.BuyerEmail = buyerEmail;
+            ticket.BuyerName = buyerName;
+            ticket.StripePaymentIntentId = paymentIntentId;
+            ticket.StripeSessionId = sessionId;
+            ticket.AmountPaid = pricePerTicket;
+            ticket.SoldAt = now;
+            ticket.ReservedAt = null;
+            ticket.ReservationExpiresAt = null;
+        }
+
+        // Update raffle sold count from actual data
+        var raffle = await _context.Raffles.FindAsync(raffleId);
+        if (raffle != null)
+        {
+            raffle.TicketsSold = await _context.Tickets
+                .CountAsync(t => t.RaffleId == raffleId && t.Status == TicketStatus.Sold);
+            raffle.UpdatedAt = now;
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Broadcast the update via SignalR
+        await BroadcastTicketUpdatesAsync(raffleId, availableTickets);
+
+        _logger.LogInformation("Confirmed {Count} tickets by quantity for user {UserId} on raffle {RaffleId}",
+            availableTickets.Count, userId, raffleId);
+
+        return availableTickets;
+    }
+
+    /// <summary>
+    /// Verify a Stripe checkout session and process the payment if completed.
+    /// Safety net for when webhooks are delayed or missed.
+    /// </summary>
+    public async Task<VerifyPaymentResult> VerifyAndProcessPaymentAsync(string sessionId)
+    {
+        try
+        {
+            // Get the session from Stripe
+            var session = await _stripeService.GetSessionAsync(sessionId);
+
+            if (session == null)
+                return new VerifyPaymentResult { Success = false, Message = "Session not found" };
+
+            if (session.PaymentStatus != "paid")
+                return new VerifyPaymentResult { Success = false, Message = $"Payment status: {session.PaymentStatus}", Status = session.PaymentStatus };
+
+            // Check metadata for raffle info
+            var metadata = session.Metadata;
+            if (metadata == null || !metadata.ContainsKey("raffle_id"))
+                return new VerifyPaymentResult { Success = false, Message = "Not a raffle payment" };
+
+            var raffleId = int.Parse(metadata["raffle_id"]);
+
+            // Check if tickets already exist for this session
+            var existingTickets = await _context.Tickets
+                .CountAsync(t => t.StripeSessionId == sessionId && t.Status == TicketStatus.Sold);
+
+            if (existingTickets > 0)
+                return new VerifyPaymentResult { Success = true, Message = "Payment already processed", AlreadyProcessed = true, TicketsAssigned = existingTickets };
+
+            // Process the payment - extract info from metadata
+            var userId = metadata.ContainsKey("user_id") ? int.Parse(metadata["user_id"]) : 0;
+            var buyerEmail = metadata.ContainsKey("buyer_email") ? metadata["buyer_email"] : (session.CustomerDetails?.Email ?? "");
+            var buyerName = metadata.ContainsKey("buyer_name") ? metadata["buyer_name"] : (session.CustomerDetails?.Name ?? "");
+            var amountPaid = (decimal)(session.AmountTotal ?? 0) / 100;
+
+            List<Ticket> tickets;
+
+            if (metadata.ContainsKey("purchase_type") && metadata["purchase_type"] == "selected_tickets"
+                && metadata.ContainsKey("ticket_ids"))
+            {
+                var ticketIds = metadata["ticket_ids"].Split(',').Select(int.Parse).ToList();
+                tickets = await ConfirmTicketPurchaseAsync(raffleId, userId, ticketIds,
+                    session.PaymentIntentId ?? "", sessionId, buyerEmail, buyerName, amountPaid);
+            }
+            else
+            {
+                var quantity = metadata.ContainsKey("quantity") ? int.Parse(metadata["quantity"]) : 1;
+                tickets = await ConfirmTicketsByQuantityAsync(raffleId, userId, quantity,
+                    session.PaymentIntentId ?? "", sessionId, buyerEmail, buyerName, amountPaid);
+            }
+
+            _logger.LogInformation("Verified and processed payment for session {SessionId}: {Count} tickets assigned", sessionId, tickets.Count);
+
+            return new VerifyPaymentResult
+            {
+                Success = true,
+                Message = "Payment verified and processed",
+                TicketsAssigned = tickets.Count
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error verifying payment for session {SessionId}", sessionId);
+            return new VerifyPaymentResult { Success = false, Message = $"Error: {ex.Message}" };
+        }
     }
 
     #endregion
@@ -607,4 +776,16 @@ public class ReserveTicketsResult
     public List<int> ReservedTicketIds { get; set; } = new();
     public List<int> UnavailableTicketIds { get; set; } = new();
     public DateTime? ExpiresAt { get; set; }
+}
+
+/// <summary>
+/// Result of payment verification
+/// </summary>
+public class VerifyPaymentResult
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string? Status { get; set; }
+    public bool AlreadyProcessed { get; set; }
+    public int TicketsAssigned { get; set; }
 }

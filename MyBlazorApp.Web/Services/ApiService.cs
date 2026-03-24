@@ -199,7 +199,7 @@ public class ApiService
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<List<TicketStatusDto>>($"tickets/raffle/{raffleId}/statuses") ?? new List<TicketStatusDto>();
+            return await _httpClient.GetFromJsonAsync<List<TicketStatusDto>>($"tickets/status/{raffleId}") ?? new List<TicketStatusDto>();
         }
         catch
         {
@@ -299,6 +299,22 @@ public class ApiService
         catch
         {
             return new List<PaymentDto>();
+        }
+    }
+
+    // Verify a Stripe payment session and process tickets if needed
+    public async Task<VerifyPaymentResponse> VerifyPaymentAsync(string sessionId)
+    {
+        try
+        {
+            var request = new { SessionId = sessionId };
+            var response = await _httpClient.PostAsJsonAsync("tickets/verify-payment", request);
+            return await response.Content.ReadFromJsonAsync<VerifyPaymentResponse>()
+                ?? new VerifyPaymentResponse { Success = false, Message = "Error parsing response" };
+        }
+        catch (Exception ex)
+        {
+            return new VerifyPaymentResponse { Success = false, Message = ex.Message };
         }
     }
 }
