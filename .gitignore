@@ -377,3 +377,4 @@ FodyWeavers.xsd
 MyBlazorApp/appsettings.json
 MyBlazorApp/appsettings.*.json
 !MyBlazorApp/appsettings.example.json
+/.github/copilot-instructions.md
