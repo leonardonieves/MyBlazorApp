@@ -1,0 +1,115 @@
+@implements IAsyncDisposable
+
+<footer class="raffle-footer">
+    <div class="footer-content">
+        <div class="container py-5">
+            <div class="row">
+                <!-- Left Section: Logo and Description -->
+                <div class="col-md-4 mb-4">
+                    <div class="footer-logo mb-3">
+                        <img src="images/indiana-soccer-logo.svg" alt="Indiana Soccer" class="footer-logo-img" />
+                    </div>
+                    <p class="footer-description">
+                        The premier destination for soccer raffles. Win signed jerseys, match tickets, and exclusive experiences while supporting youth academies.
+                    </p>
+                    <div class="social-links mt-4">
+                        <a href="#" class="social-icon" title="Facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="social-icon" title="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-icon" title="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Section: Newsletter Signup -->
+                <div class="col-md-4 offset-md-4">
+                    <div class="newsletter-section">
+                        <h5 class="newsletter-title">STAY IN THE LOOP</h5>
+                        <p class="newsletter-subtitle">Subscribe for new raffle alerts and exclusive offers.</p>
+                        
+                        <form @onsubmit="HandleSubscribe" class="newsletter-form">
+                            <div class="input-group">
+                                <input type="email" 
+                                       class="form-control newsletter-input" 
+                                       placeholder="Enter your email"
+                                       @bind="emailInput"
+                                       required />
+                                <button class="btn btn-subscribe" type="submit" disabled="@isSubscribing">
+                                    @if (isSubscribing)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    SUBSCRIBE
+                                    <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                            @if (!string.IsNullOrEmpty(subscribeMessage))
+                            {
+                                <small class="d-block mt-2 @(subscribeSuccess ? "text-success" : "text-danger")">
+                                    @subscribeMessage
+                                </small>
+                            }
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Copyright -->
+            <div class="footer-bottom mt-5 pt-4 border-top border-secondary">
+                <p class="text-start text-secondary mb-0" style="font-size: 0.85rem;">
+                    © @DateTime.Now.Year Indiana Soccer. All rights reserved. Not affiliated with FIFA.
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+@code {
+    private string emailInput = string.Empty;
+    private bool isSubscribing = false;
+    private string? subscribeMessage;
+    private bool subscribeSuccess = false;
+
+    private async Task HandleSubscribe()
+    {
+        if (string.IsNullOrWhiteSpace(emailInput))
+        {
+            subscribeMessage = "Please enter a valid email";
+            subscribeSuccess = false;
+            return;
+        }
+
+        isSubscribing = true;
+        subscribeMessage = null;
+
+        try
+        {
+            await Task.Delay(500);
+            subscribeSuccess = true;
+            subscribeMessage = "Thank you for subscribing!";
+            emailInput = string.Empty;
+
+            await Task.Delay(3000);
+            subscribeMessage = null;
+        }
+        catch (Exception ex)
+        {
+            subscribeSuccess = false;
+            subscribeMessage = "An error occurred. Please try again.";
+            Console.WriteLine($"Subscribe error: {ex.Message}");
+        }
+        finally
+        {
+            isSubscribing = false;
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        await ValueTask.CompletedTask;
+    }
+}

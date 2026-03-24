@@ -1,90 +1,58 @@
 @using MyBlazorApp.Shared.Models
 @inject NavigationManager Navigation
 
-<div class="raffle-card @(IsFeatured ? "featured" : "")">
-    <!-- Featured Badge -->
-    @if (IsFeatured)
-    {
-        <div class="featured-badge">
-            <i class="fas fa-crown me-1"></i> FEATURED
+<div class="raffle-card">
+    <!-- Card Image with Overlay Title -->
+    <div class="raffle-card-image-container">
+        <div class="raffle-card-image">
+            <img src="@ImageUrl" alt="@Title" class="img-fluid" 
+                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23ddd%22 width=%22400%22 height=%22300%22/%3E%3Ctext fill=%22%23999%22 font-family=%22sans-serif%22 font-size=%2224%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EImage Not Found%3C/text%3E%3C/svg%3E';" />
         </div>
-    }
 
-    <!-- Card Image -->
-    <div class="raffle-card-image">
-        <img src="@ImageUrl" alt="@Title" class="img-fluid" 
-             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23ddd%22 width=%22400%22 height=%22300%22/%3E%3Ctext fill=%22%23999%22 font-family=%22sans-serif%22 font-size=%2224%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EImage Not Found%3C/text%3E%3C/svg%3E';" />
+        <!-- Featured Badge -->
+        @if (IsFeatured)
+        {
+            <div class="featured-badge">
+                <i class="fas fa-crown me-1"></i> FEATURED
+            </div>
+        }
+
+        <!-- Overlay Title -->
         <div class="raffle-card-overlay">
             <h3 class="raffle-card-title">@Title</h3>
         </div>
     </div>
 
-    <!-- Card Body -->
+    <!-- Card Body with Benefits -->
     <div class="raffle-card-body">
-        <!-- Full Description -->
-        @if (!string.IsNullOrEmpty(FullDescription))
-        {
-            <div class="raffle-description mb-3">
-                <p class="text-muted small">@FullDescription</p>
-            </div>
-        }
-        <!-- Tickets Progress -->
-        @if (TotalTickets > 0)
-        {
-            <div class="tickets-progress mb-3">
-                <div class="d-flex justify-content-between small mb-1">
-                    <span class="text-muted">
-                        <i class="fas fa-ticket-alt me-1"></i>@TicketsAvailable available
-                    </span>
-                    <span class="text-muted">@((int)((TotalTickets - TicketsAvailable) * 100.0 / TotalTickets))% sold</span>
-                </div>
-                <div class="progress" style="height: 6px;">
-                    <div class="progress-bar bg-success" role="progressbar" 
-                         style="width: @((int)((TotalTickets - TicketsAvailable) * 100.0 / TotalTickets))%"></div>
-                </div>
-            </div>
-        }
-
-        <!-- Draw Date -->
-        @if (DrawDate != DateTime.MinValue)
-        {
-            <div class="draw-date mb-3 text-center">
-                <small class="text-muted">
-                    <i class="fas fa-calendar-alt me-1"></i>
-                    Draw: @DrawDate.ToString("MMM dd, yyyy")
-                </small>
-            </div>
-        }
-
         <!-- Benefits List -->
         @if (Benefits != null && Benefits.Any())
         {
-            <div class="benefits-list">
+            <ul class="raffle-benefits-list">
                 @foreach (var benefit in Benefits.Take(5))
                 {
-                    <div class="benefit-item">
+                    <li class="benefit-item">
                         <span class="benefit-icon">
                             <i class="@benefit.Icon"></i>
                         </span>
                         <span class="benefit-text">@benefit.Text</span>
-                    </div>
+                    </li>
                 }
-            </div>
+            </ul>
         }
 
         <!-- Price and CTA Button -->
         <div class="raffle-card-footer">
-            <button class="btn btn-navy btn-block @(TicketsAvailable <= 0 ? "disabled" : "")" 
+            <button class="btn btn-buy-tickets @(TicketsAvailable <= 0 ? "disabled" : "")" 
                     @onclick="HandleBuyClick"
                     disabled="@(TicketsAvailable <= 0)">
+                <i class="fas fa-shopping-cart me-2"></i>
                 @if (TicketsAvailable <= 0)
                 {
-                    <i class="fas fa-ban me-2"></i>
                     <span>SOLD OUT</span>
                 }
                 else
                 {
-                    <i class="fas fa-shopping-cart me-2"></i>
                     <span>BUY TICKETS — $@Price</span>
                 }
             </button>

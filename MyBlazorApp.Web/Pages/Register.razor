@@ -5,97 +5,251 @@
 
 <PageTitle>Register - World Cup Sweepstakes</PageTitle>
 
+<style>
+    .register-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #E2E8F0 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .register-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(22, 36, 86, 0.12);
+        max-width: 420px;
+        width: 100%;
+        padding: 3rem;
+        border: 1px solid #E2E8F0;
+    }
+
+    .register-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .register-header h2 {
+        color: #162456;
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .register-header p {
+        color: #62748E;
+        font-size: 0.95rem;
+    }
+
+    .form-label {
+        color: #162456;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        background: #F8FAFC;
+        color: #162456;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        background: white;
+        border-color: #162456;
+        box-shadow: 0 0 0 3px rgba(22, 36, 86, 0.1);
+        outline: none;
+    }
+
+    .form-control::placeholder {
+        color: #90A1B9;
+    }
+
+    .btn-register-submit {
+        background: #C10007;
+        color: white;
+        border: none;
+        padding: 0.9rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        border-radius: 14px;
+        width: 100%;
+        margin-top: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.10), 0 1px 2px -1px rgba(0, 0, 0, 0.10);
+    }
+
+    .btn-register-submit:hover:not(:disabled) {
+        background: #A00006;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(193, 0, 7, 0.3);
+    }
+
+    .btn-register-submit:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .alert {
+        border-radius: 6px;
+        border: none;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .alert-danger {
+        background: #FEE2E2;
+        color: #7F1D1D;
+    }
+
+    .alert-success {
+        background: #DCFCE7;
+        color: #166534;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+        color: #90A1B9;
+        font-size: 0.85rem;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: #E2E8F0;
+    }
+
+    .divider::before {
+        margin-right: 1rem;
+    }
+
+    .divider::after {
+        margin-left: 1rem;
+    }
+
+    .btn-login-link {
+        background: white;
+        color: #162456;
+        border: 2px solid #162456;
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        border-radius: 14px;
+        width: 100%;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.10), 0 1px 2px -1px rgba(0, 0, 0, 0.10);
+    }
+
+    .btn-login-link:hover {
+        background: #162456;
+        color: white;
+        box-shadow: 0 4px 12px rgba(22, 36, 86, 0.3);
+    }
+
+    .spinner-border {
+        color: #162456;
+    }
+</style>
+
 @if (!isReady)
 {
-    <div style="display: flex; justify-content: center; align-items: center; height: 50vh;">
-        <div class="spinner-border text-primary" role="status">
+    <div class="register-page">
+        <div class="spinner-border" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 }
 else
 {
-<div class="register-page">
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
-                <div class="card shadow-lg border-0" style="border-radius: 15px;">
-                    <div class="card-body p-5">
-                        <div class="text-center mb-4">
-                            <h2 class="mb-2">Create Account</h2>
-                            <p class="text-muted">Join to participate in sweepstakes</p>
-                        </div>
+    <div class="register-page">
+        <div class="register-container">
+            <div class="register-header">
+                <h2>Create Account</h2>
+                <p>Join to participate in sweepstakes</p>
+            </div>
 
-                        @if (!string.IsNullOrEmpty(errorMessage))
-                        {
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                @errorMessage
-                            </div>
-                        }
-
-                        @if (!string.IsNullOrEmpty(successMessage))
-                        {
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                @successMessage
-                            </div>
-                        }
-
-                        <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Username</label>
-                                <InputText class="form-control form-control-lg" 
-                                           @bind-Value="registerModel.Username" 
-                                           placeholder="Choose a username"
-                                           disabled="@isLoading" />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Email</label>
-                                <InputText type="email" 
-                                           class="form-control form-control-lg" 
-                                           @bind-Value="registerModel.Email" 
-                                           placeholder="Enter your email"
-                                           disabled="@isLoading" />
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Password</label>
-                                <InputText type="password" 
-                                           class="form-control form-control-lg" 
-                                           @bind-Value="registerModel.Password" 
-                                           placeholder="Create a password"
-                                           disabled="@isLoading" />
-                            </div>
-
-                            <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" disabled="@isLoading">
-                                @if (isLoading)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                    <span>Creating account...</span>
-                                }
-                                else
-                                {
-                                    <span>Create Account</span>
-                                }
-                            </button>
-                        </EditForm>
-
-                        <hr class="my-4" />
-
-                        <div class="text-center">
-                            <p class="text-muted mb-2">Already have an account?</p>
-                            <a href="/login" class="btn btn-outline-primary w-100">
-                                Login
-                            </a>
-                        </div>
-                    </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    @errorMessage
                 </div>
+            }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    @successMessage
+                </div>
+            }
+
+            <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <InputText class="form-control" 
+                               @bind-Value="registerModel.Username" 
+                               placeholder="Choose a username"
+                               disabled="@isLoading" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <InputText type="email" 
+                               class="form-control" 
+                               @bind-Value="registerModel.Email" 
+                               placeholder="Enter your email"
+                               disabled="@isLoading" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Password</label>
+                    <InputText type="password" 
+                               class="form-control" 
+                               @bind-Value="registerModel.Password" 
+                               placeholder="Create a password"
+                               disabled="@isLoading" />
+                </div>
+
+                <button type="submit" class="btn-register-submit" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span>Creating account...</span>
+                    }
+                    else
+                    {
+                        <span>Create Account</span>
+                    }
+                </button>
+            </EditForm>
+
+            <div class="divider">or</div>
+
+            <div class="text-center mb-3">
+                <p style="color: #62748E; font-size: 0.9rem; margin-bottom: 1rem;">Already have an account?</p>
+                <a href="/login" class="btn-login-link">Login</a>
             </div>
         </div>
     </div>
-</div>
 }
 
 @code {

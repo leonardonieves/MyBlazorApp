@@ -8,7 +8,7 @@
     <!-- Logo -->
     <div class="navbar-logo-section">
         <a href="/">
-            <span style="color: white; font-weight: bold; font-size: 1.5rem;">🎟️ World Cup Sweepstakes</span>
+            <img src="images/indiana-soccer-logo.svg" alt="Indiana Soccer" class="navbar-logo" />
         </a>
     </div>
 
@@ -16,37 +16,37 @@
     <div class="navbar-right-section">
         @if (AuthState.IsAuthenticated && currentUser != null)
         {
-            <!-- Usuario logueado -->
+            <!-- User logged in -->
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <span style="color: white; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: white; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
                     <i class="fas fa-user-circle"></i>
                     @currentUser.Username
                     @if (currentUser.RoleName == "Admin")
                     {
-                        <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">ADMIN</span>
+                        <span class="badge bg-danger" style="font-size: 0.65rem; padding: 0.25rem 0.5rem;">ADMIN</span>
                     }
                 </span>
-                
+
                 @if (currentUser.RoleName == "Admin")
                 {
-                    <a href="/admin" class="btn btn-sm btn-outline-light">
-                        <i class="fas fa-cog"></i> Admin
+                    <a href="/admin" class="btn btn-sm" style="color: white; border: 1px solid white; padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+                        <i class="fas fa-cog me-1"></i> Admin
                     </a>
                 }
-                
-                <a href="/my-tickets" class="btn btn-sm btn-outline-light">
+
+                <a href="/my-tickets" class="btn btn-sm" style="color: white; border: 1px solid white; padding: 0.35rem 0.75rem; font-size: 0.85rem;">
                     <i class="fas fa-ticket-alt me-1"></i> My Tickets
                 </a>
-                
-                <button class="btn btn-sm btn-danger" @onclick="HandleLogout">
+
+                <button class="btn btn-sm btn-danger" @onclick="HandleLogout" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">
                     <i class="fas fa-sign-out-alt me-1"></i> Logout
                 </button>
             </div>
         }
         else
         {
-            <!-- No logueado -->
-            <button class="btn btn-outline-light" @onclick="NavigateToLogin">
+            <!-- Not logged in -->
+            <button class="btn-join-login" @onclick="NavigateToLogin">
                 <i class="fas fa-sign-in-alt me-1"></i> JOIN / LOGIN
             </button>
         }
