@@ -107,11 +107,11 @@ public class ApiService
         try
         {
             var response = await _httpClient.PostAsJsonAsync("tickets/buy", request);
-            return await response.Content.ReadFromJsonAsync<BuyTicketResponse>() ?? new BuyTicketResponse { Success = false, ErrorMessage = "Error de conexión" };
+            return await response.Content.ReadFromJsonAsync<BuyTicketResponse>() ?? new BuyTicketResponse { Success = false, ErrorMessage = "Connection error" };
         }
         catch
         {
-            return new BuyTicketResponse { Success = false, ErrorMessage = "Error de conexión" };
+            return new BuyTicketResponse { Success = false, ErrorMessage = "Connection error" };
         }
     }
 

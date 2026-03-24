@@ -12,7 +12,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">🎟️ Mi Rifa</a>
+            <a class="navbar-brand" href="/">🎟️ World Cup Sweepstakes</a>
             <div class="navbar-collapse">
                 <ul class="navbar-nav ms-auto">
                     @if (isAuthenticated)
@@ -24,14 +24,14 @@
                         </li>
                         <li class="nav-item">
                             <button class="btn btn-outline-light btn-sm" @onclick="HandleLogout">
-                                <i class="fas fa-sign-out-alt"></i> Salir
+                                <i class="fas fa-sign-out-alt"></i> Logout
                             </button>
                         </li>
                     }
                     else
                     {
                         <li class="nav-item">
-                            <a class="nav-link" href="/login">Ingresar</a>
+                            <a class="nav-link" href="/login">Login</a>
                         </li>
                     }
                 </ul>
@@ -100,21 +100,21 @@
                     }
                 </div>
 
-                <!-- Info y compra -->
+                <!-- Info and Purchase -->
                 <div class="col-lg-6">
                     <div class="raffle-info-card">
                         <h1 class="raffle-title">@raffle.Title</h1>
                         <p class="raffle-description">@raffle.ShortDescription</p>
 
                         <div class="price-tag">
-                            <span class="price-label">Precio por ticket:</span>
+                            <span class="price-label">Price per ticket:</span>
                             <span class="price-value">$@raffle.TicketPrice</span>
                         </div>
 
-                        <!-- Progreso de ventas -->
+                        <!-- Sales Progress -->
                         <div class="sales-progress mt-4">
                             <div class="d-flex justify-content-between mb-2">
-                                <span>Tickets vendidos</span>
+                                <span>Tickets sold</span>
                                 <span><strong>@raffle.TicketsSold</strong> / @raffle.TotalTickets</span>
                             </div>
                             <div class="progress">
@@ -126,18 +126,18 @@
                                     @raffle.SoldPercentage.ToString("F1")%
                                 </div>
                             </div>
-                            <small class="text-muted">@raffle.TicketsAvailable tickets disponibles</small>
+                            <small class="text-muted">@raffle.TicketsAvailable tickets available</small>
                         </div>
 
-                        <!-- Fechas -->
+                        <!-- Dates -->
                         <div class="dates-info mt-4">
                             <div class="row">
                                 <div class="col-6">
-                                    <small class="text-muted">Inicio:</small>
+                                    <small class="text-muted">Start:</small>
                                     <p class="mb-0"><i class="fas fa-calendar-alt"></i> @raffle.SalesStartDate.ToString("dd/MM/yyyy")</p>
                                 </div>
                                 <div class="col-6">
-                                    <small class="text-muted">Fin:</small>
+                                    <small class="text-muted">End:</small>
                                     <p class="mb-0"><i class="fas fa-calendar-check"></i> @raffle.SalesEndDate.ToString("dd/MM/yyyy")</p>
                                 </div>
                             </div>
@@ -145,25 +145,25 @@
 
                         <hr />
 
-                        <!-- Formulario de compra -->
+                        <!-- Purchase Form -->
                         @if (raffle.IsSoldOut)
                         {
                             <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle"></i> Esta rifa está agotada
+                                <i class="fas fa-exclamation-triangle"></i> This raffle is sold out
                             </div>
                         }
                         else if (!isAuthenticated)
                         {
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle"></i> 
-                                <a href="/login">Inicia sesión</a> o <a href="/register">regístrate</a> para comprar tickets
+                                <a href="/login">Sign in</a> or <a href="/register">register</a> to buy tickets
                             </div>
                         }
                         else
                         {
                             <div class="buy-section">
-                                <h5><i class="fas fa-shopping-cart"></i> Comprar Tickets</h5>
-                                
+                                <h5><i class="fas fa-shopping-cart"></i> Buy Tickets</h5>
+
                                 @if (!string.IsNullOrEmpty(errorMessage))
                                 {
                                     <div class="alert alert-danger">@errorMessage</div>
@@ -175,7 +175,7 @@
                                 }
 
                                 <div class="quantity-selector mb-3">
-                                    <label class="form-label">Cantidad de tickets:</label>
+                                    <label class="form-label">Quantity of tickets:</label>
                                     <div class="input-group">
                                         <button class="btn btn-outline-secondary" type="button" 
                                                 @onclick="DecrementQuantity" disabled="@(quantity <= 1 || isPurchasing)">
@@ -192,7 +192,7 @@
                                 </div>
 
                                 <div class="total-price mb-3">
-                                    <span>Total a pagar:</span>
+                                    <span>Total to pay:</span>
                                     <strong class="fs-4 text-primary">$@((raffle.TicketPrice * quantity).ToString("F2"))</strong>
                                 </div>
 
@@ -202,17 +202,17 @@
                                     @if (isPurchasing)
                                     {
                                         <span class="spinner-border spinner-border-sm me-2"></span>
-                                        <span>Procesando...</span>
+                                        <span>Processing...</span>
                                     }
                                     else
                                     {
                                         <i class="fas fa-credit-card me-2"></i>
-                                        <span>Comprar @quantity ticket(s)</span>
+                                        <span>Buy @quantity ticket(s)</span>
                                     }
                                 </button>
 
                                 <p class="text-muted small mt-3 text-center">
-                                    <i class="fas fa-lock"></i> Pago seguro con Stripe
+                                    <i class="fas fa-lock"></i> Secure payment with Stripe
                                 </p>
                             </div>
                         }

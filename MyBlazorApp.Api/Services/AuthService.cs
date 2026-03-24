@@ -20,29 +20,29 @@ public class AuthService
     }
 
     /// <summary>
-    /// Registrar un nuevo usuario y crear customer en Stripe
+    /// Register a new user and create customer in Stripe
     /// </summary>
     public async Task<(bool success, string message, User? user)> RegisterAsync(string username, string email, string password, string roleName = "Basic")
     {
         try
         {
-            // Validar que el username no exista
+            // Validate that the username does not exist
             if (await _context.Users.AnyAsync(u => u.Username == username))
                 return (false, "Username already exists", null);
 
-            // Validar que el email no exista
+            // Validate that the email does not exist
             if (await _context.Users.AnyAsync(u => u.Email == email))
                 return (false, "Email already exists", null);
 
-            // Obtener el rol
+            // Get the role
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
             if (role == null)
                 return (false, "Role not found", null);
 
-            // Hash de la contraseña
+            // Hash the password
             var passwordHash = HashPassword(password);
 
-            // Crear usuario
+            // Create user
             var user = new User
             {
                 Username = username,
@@ -53,7 +53,7 @@ public class AuthService
                 IsActive = true
             };
 
-            // Crear customer en Stripe
+            // Create customer in Stripe
             try
             {
                 var stripeCustomer = await _stripeService.CreateCustomerAsync(
@@ -74,7 +74,7 @@ public class AuthService
             catch (Exception ex)
             {
                 _logger.LogError($"Error creating Stripe customer for {username}: {ex.Message}");
-                // Continuar sin Stripe customer - se puede agregar más tarde
+                // Continue without Stripe customer - can be added later
             }
 
             _context.Users.Add(user);
@@ -91,7 +91,7 @@ public class AuthService
     }
 
     /// <summary>
-    /// Login de usuario
+    /// User login
     /// </summary>
     public async Task<(bool success, string message, User? user)> LoginAsync(string username, string password)
     {
@@ -149,7 +149,7 @@ public class AuthService
     }
 
     /// <summary>
-    /// Crear o actualizar Stripe Customer para un usuario existente
+    /// Create or update Stripe Customer for an existing user
     /// </summary>
     public async Task<(bool success, string message, string? customerId)> EnsureStripeCustomerAsync(int userId)
     {

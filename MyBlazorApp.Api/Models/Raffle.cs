@@ -8,12 +8,12 @@ namespace MyBlazorApp.Api.Models;
 /// </summary>
 public enum RaffleStatus
 {
-    Draft = 0,          // Borrador - no visible al público
-    Active = 1,         // Activo - aceptando compras
-    SalesClosed = 2,    // Ventas cerradas - esperando sorteo
-    Drawing = 3,        // En proceso de sorteo
-    Completed = 4,      // Completado - ganador anunciado
-    Cancelled = 5       // Cancelado
+    Draft = 0,          // Draft - not visible to public
+    Active = 1,         // Active - accepting purchases
+    SalesClosed = 2,    // Sales closed - waiting for draw
+    Drawing = 3,        // Drawing in progress
+    Completed = 4,      // Completed - winner announced
+    Cancelled = 5       // Cancelled
 }
 
 /// <summary>

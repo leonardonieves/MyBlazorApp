@@ -98,7 +98,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Verificar si ya está autenticado y tiene un usuario válido
+        // Check if already authenticated and has a valid user
         var user = await AuthState.GetUserAsync();
         if (AuthState.IsAuthenticated && user != null)
         {

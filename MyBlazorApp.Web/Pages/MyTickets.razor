@@ -6,13 +6,13 @@
 @inject AuthStateService AuthState
 @inject ILogger<MyTickets> Logger
 
-<PageTitle>Mis Tickets - Mi Rifa</PageTitle>
+<PageTitle>My Tickets - World Cup Sweepstakes</PageTitle>
 
 <div class="my-tickets-page">
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">🎟️ Mi Rifa</a>
+            <a class="navbar-brand" href="/">🎟️ World Cup Sweepstakes</a>
             <div class="navbar-collapse">
                 <ul class="navbar-nav ms-auto">
                     @if (isAuthenticated)
@@ -49,14 +49,14 @@
         {
             <div class="alert alert-warning">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                Debes <a href="/login">iniciar sesión</a> para ver tus tickets.
+                You must <a href="/login">sign in</a> to view your tickets.
             </div>
         }
         else if (isLoading)
         {
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
+                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         }
@@ -66,10 +66,10 @@
                 <div class="empty-icon">
                     <i class="fas fa-ticket-alt"></i>
                 </div>
-                <h3>No tienes tickets aún</h3>
-                <p class="text-muted">Compra tus primeros tickets y participa en nuestras rifas</p>
+                <h3>You don't have any tickets yet</h3>
+                <p class="text-muted">Buy your first tickets and participate in our raffles</p>
                 <a href="/" class="btn btn-primary">
-                    <i class="fas fa-shopping-cart me-2"></i> Ver Rifas Disponibles
+                    <i class="fas fa-shopping-cart me-2"></i> View Available Raffles
                 </a>
             </div>
         }
@@ -96,7 +96,7 @@
                             </div>
                             <div class="summary-info">
                                 <span class="summary-value">@tickets.Count(t => t.Status == "Confirmed")</span>
-                                <span class="summary-label">Confirmados</span>
+                                <span class="summary-label">Confirmed</span>
                             </div>
                         </div>
                     </div>
@@ -107,7 +107,7 @@
                             </div>
                             <div class="summary-info">
                                 <span class="summary-value">@tickets.Count(t => t.IsWinner)</span>
-                                <span class="summary-label">Ganadores</span>
+                                <span class="summary-label">Winners</span>
                             </div>
                         </div>
                     </div>
@@ -120,27 +120,27 @@
                 <div class="raffle-tickets-group mb-4">
                     <h4 class="group-title">
                         <i class="fas fa-gift me-2"></i>
-                        Rifa #@group.Key
+                        Raffle #@group.Key
                     </h4>
                     <div class="tickets-grid">
                         @foreach (var ticket in group.OrderBy(t => t.TicketNumber))
                         {
                             <div class="ticket-card @(ticket.IsWinner ? "winner" : "") @(ticket.Status == "Confirmed" ? "confirmed" : "pending")">
                                 <div class="ticket-number">
-                                    <span class="number-label">Número</span>
+                                    <span class="number-label">Number</span>
                                     <span class="number-value">@ticket.TicketNumber.ToString("D4")</span>
                                 </div>
                                 <div class="ticket-status">
                                     @if (ticket.IsWinner)
                                     {
                                         <span class="badge bg-warning text-dark">
-                                            <i class="fas fa-trophy"></i> ¡GANADOR!
+                                            <i class="fas fa-trophy"></i> WINNER!
                                         </span>
                                     }
                                     else if (ticket.Status == "Confirmed")
                                     {
                                         <span class="badge bg-success">
-                                            <i class="fas fa-check"></i> Confirmado
+                                            <i class="fas fa-check"></i> Confirmed
                                         </span>
                                     }
                                     else
