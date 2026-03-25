@@ -23,7 +23,7 @@ public class StripeWebhookController : ControllerBase
 
     /// <summary>
     /// Receive and process Stripe webhook events
-    /// POST: api/stripe-webhook
+    /// POST: api/stripewebhook
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> HandleWebhook()

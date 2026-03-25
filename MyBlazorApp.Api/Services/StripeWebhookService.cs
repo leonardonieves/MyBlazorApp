@@ -113,7 +113,11 @@ public class StripeWebhookService
     {
         try
         {
-            var stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, endpointSecret);
+            var stripeEvent = EventUtility.ConstructEvent(
+                json,
+                signatureHeader,
+                endpointSecret,
+                throwOnApiVersionMismatch: false);
             return stripeEvent;
         }
         catch (StripeException ex)
