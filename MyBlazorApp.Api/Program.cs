@@ -69,6 +69,7 @@ builder.Services.AddScoped<StripeService>();
 builder.Services.AddScoped<StripeSyncService>();
 builder.Services.AddScoped<StripeWebhookService>();
 builder.Services.AddScoped<PaymentService>();
+builder.Services.AddSingleton<SignalRNotificationService>();
 
 // Add hosted service for expired reservation cleanup
 builder.Services.AddHostedService<ReservationCleanupService>();

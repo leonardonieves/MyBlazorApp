@@ -11,11 +11,13 @@ public class RaffleService
 {
     private readonly AppDbContext _context;
     private readonly ILogger<RaffleService> _logger;
+    private readonly SignalRNotificationService _signalR;
 
-    public RaffleService(AppDbContext context, ILogger<RaffleService> logger)
+    public RaffleService(AppDbContext context, ILogger<RaffleService> logger, SignalRNotificationService signalR)
     {
         _context = context;
         _logger = logger;
+        _signalR = signalR;
     }
 
     #region Raffle CRUD Operations
@@ -115,6 +117,7 @@ public class RaffleService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Created raffle: {RaffleId} - {Title}", raffle.Id, raffle.Title);
+        await _signalR.NotifyRafflesUpdatedAsync();
         return raffle;
     }
 
@@ -128,6 +131,8 @@ public class RaffleService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Updated raffle: {RaffleId}", raffle.Id);
+        await _signalR.NotifyRafflesUpdatedAsync();
+        await _signalR.NotifyRaffleUpdatedAsync(raffle.Id);
         return raffle;
     }
 
@@ -150,6 +155,8 @@ public class RaffleService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Activated raffle: {RaffleId}", raffleId);
+        await _signalR.NotifyRafflesUpdatedAsync();
+        await _signalR.NotifyRaffleUpdatedAsync(raffleId);
         return true;
     }
 
@@ -166,6 +173,8 @@ public class RaffleService
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Closed sales for raffle: {RaffleId}", raffleId);
+        await _signalR.NotifyRafflesUpdatedAsync();
+        await _signalR.NotifyRaffleUpdatedAsync(raffleId);
         return true;
     }
 
@@ -295,6 +304,12 @@ public class RaffleService
 
         _logger.LogInformation("Created ticket: {TicketNumber} for raffle {RaffleId}", 
             ticket.TicketNumber, ticket.RaffleId);
+
+        if (raffle != null)
+        {
+            await _signalR.NotifyTicketsSoldAsync(ticket.RaffleId, raffle.TicketsSold, raffle.TicketsAvailable);
+        }
+
         return ticket;
     }
 

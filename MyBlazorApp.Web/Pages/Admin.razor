@@ -4,8 +4,10 @@
 @using MyBlazorApp.Shared.Models
 @inject AuthStateService AuthState
 @inject ApiService Api
+@inject SignalRService SignalR
 @inject ILogger<Admin> Logger
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Admin Dashboard - World Cup Sweepstakes</PageTitle>
 
@@ -359,8 +361,19 @@
             return;
         }
 
+        SignalR.OnRafflesUpdated += OnRafflesUpdatedAsync;
+
         await LoadRaffles();
         await LoadSyncStatus();
+    }
+
+    private async Task OnRafflesUpdatedAsync()
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadRaffles();
+            StateHasChanged();
+        });
     }
 
     private async Task LoadSyncStatus()
@@ -447,5 +460,10 @@
         {
             isSyncing = false;
         }
+    }
+
+    public void Dispose()
+    {
+        SignalR.OnRafflesUpdated -= OnRafflesUpdatedAsync;
     }
 }

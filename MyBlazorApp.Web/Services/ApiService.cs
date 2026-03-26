@@ -317,4 +317,58 @@ public class ApiService
             return new VerifyPaymentResponse { Success = false, Message = ex.Message };
         }
     }
+
+    /// <summary>
+    /// Generic method to POST and get JSON response (useful for testing)
+    /// </summary>
+    public async Task<T?> GetFromJsonAsync<T>(string endpoint, string method = "GET")
+    {
+        try
+        {
+            HttpResponseMessage response;
+            if (method.ToUpper() == "POST")
+            {
+                response = await _httpClient.PostAsync(endpoint, null);
+            }
+            else
+            {
+                response = await _httpClient.GetAsync(endpoint);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<T>();
+            }
+            return default;
+        }
+        catch
+        {
+            return default;
+        }
+    }
+
+    /// <summary>
+    /// Generic method to make HTTP requests without specifying response type
+    /// </summary>
+    public async Task<bool> SendRequestAsync(string endpoint, string method = "GET")
+    {
+        try
+        {
+            HttpResponseMessage response;
+            if (method.ToUpper() == "POST")
+            {
+                response = await _httpClient.PostAsync(endpoint, null);
+            }
+            else
+            {
+                response = await _httpClient.GetAsync(endpoint);
+            }
+
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

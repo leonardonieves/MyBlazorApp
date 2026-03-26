@@ -16,15 +16,18 @@ public class SyncController : ControllerBase
 {
     private readonly StripeSyncService _syncService;
     private readonly RaffleService _raffleService;
+    private readonly SignalRNotificationService _signalR;
     private readonly ILogger<SyncController> _logger;
 
     public SyncController(
         StripeSyncService syncService,
         RaffleService raffleService,
+        SignalRNotificationService signalR,
         ILogger<SyncController> logger)
     {
         _syncService = syncService;
         _raffleService = raffleService;
+        _signalR = signalR;
         _logger = logger;
     }
 
@@ -40,6 +43,9 @@ public class SyncController : ControllerBase
             _logger.LogInformation("Starting Stripe sync...");
 
             var raffles = await _syncService.SyncProductsFromStripeAsync();
+
+            // Notify all connected clients that raffles have been updated
+            await _signalR.NotifyRafflesUpdatedAsync();
 
             return Ok(new SyncResponse
             {

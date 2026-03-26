@@ -23,5 +23,12 @@ builder.Services.AddBlazoredLocalStorage();
 // Add custom services
 builder.Services.AddScoped<AuthStateService>();
 builder.Services.AddScoped<ApiService>();
+builder.Services.AddSingleton<SignalRService>();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+// Start SignalR connection
+var signalR = host.Services.GetRequiredService<SignalRService>();
+await signalR.StartAsync();
+
+await host.RunAsync();

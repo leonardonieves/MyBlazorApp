@@ -4,8 +4,10 @@
 @using MyBlazorApp.Shared.Models
 @inject AuthStateService AuthState
 @inject ApiService Api
+@inject SignalRService SignalR
 @inject NavigationManager NavigationManager
 @inject ILogger<RaffleDetail> Logger
+@implements IAsyncDisposable
 
 <PageTitle>@(raffle?.Title ?? "Cargando...") - World Cup Sweepstakes</PageTitle>
 
@@ -211,7 +213,46 @@
 
     protected override async Task OnInitializedAsync()
     {
+        SignalR.OnRaffleUpdated += OnRaffleUpdatedAsync;
+        SignalR.OnTicketsSold += OnTicketsSoldAsync;
+        SignalR.OnWinnerDrawn += OnWinnerDrawnAsync;
+        await SignalR.JoinRaffleAsync(RaffleId);
         await LoadData();
+    }
+
+    private async Task OnRaffleUpdatedAsync(int raffleId)
+    {
+        if (raffleId != RaffleId) return;
+        await InvokeAsync(async () =>
+        {
+            raffle = await Api.GetRaffleByIdAsync(RaffleId);
+            StateHasChanged();
+        });
+    }
+
+    private async Task OnTicketsSoldAsync(int raffleId, int ticketsSold, int ticketsAvailable)
+    {
+        if (raffleId != RaffleId) return;
+        await InvokeAsync(() =>
+        {
+            if (raffle != null)
+            {
+                raffle.TicketsSold = ticketsSold;
+                raffle.TicketsAvailable = ticketsAvailable;
+            }
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task OnWinnerDrawnAsync(int raffleId)
+    {
+        if (raffleId != RaffleId) return;
+        await InvokeAsync(async () =>
+        {
+            raffle = await Api.GetRaffleByIdAsync(RaffleId);
+            StateHasChanged();
+        });
     }
 
     private async Task LoadData()
@@ -296,6 +337,14 @@
         {
             isPurchasing = false;
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SignalR.OnRaffleUpdated -= OnRaffleUpdatedAsync;
+        SignalR.OnTicketsSold -= OnTicketsSoldAsync;
+        SignalR.OnWinnerDrawn -= OnWinnerDrawnAsync;
+        await SignalR.LeaveRaffleAsync(RaffleId);
     }
 }
 

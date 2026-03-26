@@ -15,19 +15,22 @@ public class StripeWebhookService
     private readonly ILogger<StripeWebhookService> _logger;
     private readonly RaffleService _raffleService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly SignalRNotificationService _signalR;
 
     public StripeWebhookService(
         IConfiguration configuration,
         AppDbContext context,
         ILogger<StripeWebhookService> logger,
         RaffleService raffleService,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        SignalRNotificationService signalR)
     {
         _configuration = configuration;
         _context = context;
         _logger = logger;
         _raffleService = raffleService;
         _serviceProvider = serviceProvider;
+        _signalR = signalR;
     }
 
     // Helper to get StripeSyncService when needed (avoids circular dependency)
@@ -209,6 +212,14 @@ public class StripeWebhookService
 
                 _logger.LogInformation("Successfully confirmed {Count} tickets for raffle {RaffleId}", 
                     confirmedTickets.Count, raffleId);
+
+                // Notify connected clients in real-time
+                var raffle = await _raffleService.GetRaffleByIdAsync(raffleId);
+                if (raffle != null)
+                {
+                    await _signalR.NotifyTicketsSoldAsync(raffleId, raffle.TicketsSold, raffle.TicketsAvailable);
+                }
+                await _signalR.NotifyRaffleUpdatedAsync(raffleId);
             }
             else
             {
@@ -233,6 +244,14 @@ public class StripeWebhookService
 
                 _logger.LogInformation("Successfully assigned {Count} tickets for raffle {RaffleId}", 
                     tickets.Count, raffleId);
+
+                // Notify connected clients in real-time
+                var raffleAfterPurchase = await _raffleService.GetRaffleByIdAsync(raffleId);
+                if (raffleAfterPurchase != null)
+                {
+                    await _signalR.NotifyTicketsSoldAsync(raffleId, raffleAfterPurchase.TicketsSold, raffleAfterPurchase.TicketsAvailable);
+                }
+                await _signalR.NotifyRaffleUpdatedAsync(raffleId);
             }
         }
         catch (Exception ex)

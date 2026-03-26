@@ -1,6 +1,7 @@
 ﻿@page "/"
 @inject ApiService Api
 @inject AuthStateService AuthState
+@inject SignalRService SignalR
 @implements IDisposable
 
 <PageTitle>World Cup Sweepstakes</PageTitle>
@@ -117,12 +118,41 @@
     protected override async Task OnInitializedAsync()
     {
         AuthState.OnAuthStateChanged += OnAuthStateChanged;
+        SignalR.OnRafflesUpdated += OnRafflesUpdatedAsync;
+        SignalR.OnTicketsSold += OnTicketsSoldAsync;
         await LoadRaffles();
     }
 
     private void OnAuthStateChanged()
     {
         InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnRafflesUpdatedAsync()
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadRaffles();
+            StateHasChanged();
+        });
+    }
+
+    private async Task OnTicketsSoldAsync(int raffleId, int ticketsSold, int ticketsAvailable)
+    {
+        await InvokeAsync(() =>
+        {
+            if (raffles != null)
+            {
+                var raffle = raffles.FirstOrDefault(r => r.Id == raffleId);
+                if (raffle != null)
+                {
+                    raffle.TicketsSold = ticketsSold;
+                    raffle.TicketsAvailable = ticketsAvailable;
+                }
+            }
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
     }
 
     private async Task LoadRaffles()
@@ -198,5 +228,7 @@
     public void Dispose()
     {
         AuthState.OnAuthStateChanged -= OnAuthStateChanged;
+        SignalR.OnRafflesUpdated -= OnRafflesUpdatedAsync;
+        SignalR.OnTicketsSold -= OnTicketsSoldAsync;
     }
 }

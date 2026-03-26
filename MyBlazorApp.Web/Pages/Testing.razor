@@ -1,0 +1,374 @@
+@page "/testing"
+@using MyBlazorApp.Web.Services
+@inject SignalRService SignalR
+@inject ApiService Api
+@inject ILogger<Testing> Logger
+@implements IDisposable
+
+<PageTitle>SignalR Testing - World Cup Sweepstakes</PageTitle>
+
+<div class="testing-page container mt-5">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card shadow-lg">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h2 class="mb-0">
+                        <i class="fas fa-bug me-2"></i>SignalR Testing Dashboard
+                    </h2>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Connection Status -->
+                    <div class="alert @(SignalR.IsConnected ? "alert-success" : "alert-danger")" role="alert">
+                        <i class="fas @(SignalR.IsConnected ? "fa-check-circle" : "fa-times-circle") me-2"></i>
+                        <strong>Connection Status:</strong> 
+                        @if (SignalR.IsConnected)
+                        {
+                            <span>🟢 Connected</span>
+                        }
+                        else
+                        {
+                            <span>🔴 Disconnected</span>
+                        }
+                    </div>
+
+                    <!-- API Health Check -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-heartbeat me-2"></i>API Health Check</h5>
+                        <button class="btn btn-primary btn-sm" @onclick="CheckApiHealth" disabled="@isChecking">
+                            @if (isChecking)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            <span>Ping API</span>
+                        </button>
+                        @if (!string.IsNullOrEmpty(apiHealthMessage))
+                        {
+                            <div class="alert @(apiHealthSuccess ? "alert-success" : "alert-danger") mt-3 mb-0">
+                                @apiHealthMessage
+                            </div>
+                        }
+                    </div>
+
+                    <hr />
+
+                    <!-- Event Broadcasting Tests -->
+                    <div class="mb-4">
+                        <h5><i class="fas fa-broadcast-tower me-2"></i>Test Event Broadcasting</h5>
+
+                        <!-- Test 1: RafflesUpdated -->
+                        <div class="mb-3">
+                            <button class="btn btn-warning btn-sm" @onclick="BroadcastRafflesUpdated" disabled="@(!SignalR.IsConnected || isBroadcasting)">
+                                @if (isBroadcasting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                <i class="fas fa-list me-1"></i>Broadcast: RafflesUpdated
+                            </button>
+                            <small class="text-muted d-block mt-1">Simulates raffle list changes</small>
+                        </div>
+
+                        <!-- Test 2: RaffleUpdated -->
+                        <div class="mb-3">
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" @bind="testRaffleId" placeholder="Raffle ID" />
+                                <button class="btn btn-warning" @onclick="BroadcastRaffleUpdated" disabled="@(!SignalR.IsConnected || isBroadcasting || testRaffleId <= 0)">
+                                    @if (isBroadcasting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="fas fa-sync me-1"></i>Broadcast: RaffleUpdated
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1">Updates a specific raffle</small>
+                        </div>
+
+                        <!-- Test 3: TicketsSold -->
+                        <div class="mb-3">
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" @bind="testRaffleId" placeholder="Raffle ID" />
+                                <input type="number" class="form-control" @bind="testTicketsSold" placeholder="Sold" min="0" />
+                                <input type="number" class="form-control" @bind="testTicketsAvailable" placeholder="Available" min="0" />
+                                <button class="btn btn-info" @onclick="BroadcastTicketsSold" disabled="@(!SignalR.IsConnected || isBroadcasting || testRaffleId <= 0)">
+                                    @if (isBroadcasting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="fas fa-ticket-alt me-1"></i>Broadcast: TicketsSold
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1">Simulates ticket sales</small>
+                        </div>
+
+                        <!-- Test 4: WinnerDrawn -->
+                        <div class="mb-3">
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" @bind="testRaffleId" placeholder="Raffle ID" />
+                                <button class="btn btn-success" @onclick="BroadcastWinnerDrawn" disabled="@(!SignalR.IsConnected || isBroadcasting || testRaffleId <= 0)">
+                                    @if (isBroadcasting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="fas fa-trophy me-1"></i>Broadcast: WinnerDrawn
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1">Simulates winner announcement</small>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Event Log -->
+                    <div>
+                        <h5><i class="fas fa-history me-2"></i>Received Events Log</h5>
+                        <div class="event-log" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 1rem; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;">
+                            @if (eventLog.Count == 0)
+                            {
+                                <div class="text-muted text-center py-5">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <p>No events received yet</p>
+                                    <small>Broadcast events from the buttons above to see them here</small>
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var evt in eventLog.OrderByDescending(e => e.Timestamp).Take(50))
+                                {
+                                    <div class="mb-2 pb-2 border-bottom">
+                                        <div class="text-muted small">@evt.Timestamp:mm:ss.fff</div>
+                                        <div class="font-weight-bold text-info">@evt.EventName</div>
+                                        @if (!string.IsNullOrEmpty(evt.Data))
+                                        {
+                                            <div class="text-muted small">@evt.Data</div>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                        @if (eventLog.Count > 0)
+                        {
+                            <button class="btn btn-secondary btn-sm mt-2" @onclick="ClearLog">
+                                <i class="fas fa-trash me-1"></i>Clear Log
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions Card -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>How to Test</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>Verify the <strong>Connection Status</strong> shows 🟢 Connected</li>
+                        <li>Click <strong>Ping API</strong> to verify backend is running</li>
+                        <li>Use the test buttons to broadcast SignalR events</li>
+                        <li>Check the <strong>Event Log</strong> to see if events are received</li>
+                        <li>Open browser <strong>Developer Tools Console (F12)</strong> to see detailed logs</li>
+                        <li>Visit other pages (Home, Raffle Detail, etc.) and trigger events to see automatic updates</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .testing-page {
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .event-log {
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .event-log div {
+        padding: 0.25rem 0;
+    }
+</style>
+
+@code {
+    private List<EventLogEntry> eventLog = new();
+    private int testRaffleId = 1;
+    private int testTicketsSold = 10;
+    private int testTicketsAvailable = 90;
+    private bool isChecking = false;
+    private bool isBroadcasting = false;
+    private string? apiHealthMessage;
+    private bool apiHealthSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SignalR.OnRafflesUpdated += OnRafflesUpdated;
+        SignalR.OnRaffleUpdated += OnRaffleUpdated;
+        SignalR.OnTicketsSold += OnTicketsSold;
+        SignalR.OnWinnerDrawn += OnWinnerDrawn;
+
+        Logger.LogInformation("Testing page initialized");
+    }
+
+    private async Task OnRafflesUpdated()
+    {
+        LogEvent("RafflesUpdated", "");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnRaffleUpdated(int raffleId)
+    {
+        LogEvent("RaffleUpdated", $"RaffleId: {raffleId}");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnTicketsSold(int raffleId, int ticketsSold, int ticketsAvailable)
+    {
+        LogEvent("TicketsSold", $"RaffleId: {raffleId}, Sold: {ticketsSold}, Available: {ticketsAvailable}");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnWinnerDrawn(int raffleId)
+    {
+        LogEvent("WinnerDrawn", $"RaffleId: {raffleId}");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void LogEvent(string eventName, string data)
+    {
+        var entry = new EventLogEntry
+        {
+            EventName = eventName,
+            Data = data,
+            Timestamp = DateTime.Now
+        };
+        eventLog.Add(entry);
+        Logger.LogInformation("Event logged: {EventName} - {Data}", eventName, data);
+    }
+
+    private async Task CheckApiHealth()
+    {
+        isChecking = true;
+        apiHealthMessage = null;
+        try
+        {
+            var response = await Api.GetRafflesAsync();
+            apiHealthMessage = "✅ API is healthy and responding";
+            apiHealthSuccess = true;
+            Logger.LogInformation("API health check successful");
+        }
+        catch (Exception ex)
+        {
+            apiHealthMessage = $"❌ API error: {ex.Message}";
+            apiHealthSuccess = false;
+            Logger.LogError(ex, "API health check failed");
+        }
+        finally
+        {
+            isChecking = false;
+        }
+    }
+
+    private async Task BroadcastRafflesUpdated()
+    {
+        isBroadcasting = true;
+        try
+        {
+            await Api.SendRequestAsync("testing/broadcast-raffles-updated", "POST");
+            LogEvent("BROADCAST_SENT", "RafflesUpdated");
+            Logger.LogInformation("Broadcast sent: RafflesUpdated");
+        }
+        catch (Exception ex)
+        {
+            LogEvent("BROADCAST_ERROR", ex.Message);
+            Logger.LogError(ex, "Error broadcasting RafflesUpdated");
+        }
+        finally
+        {
+            isBroadcasting = false;
+        }
+    }
+
+    private async Task BroadcastRaffleUpdated()
+    {
+        isBroadcasting = true;
+        try
+        {
+            await Api.SendRequestAsync($"testing/broadcast-raffle-updated/{testRaffleId}", "POST");
+            LogEvent("BROADCAST_SENT", $"RaffleUpdated for raffle {testRaffleId}");
+            Logger.LogInformation("Broadcast sent: RaffleUpdated for raffle {RaffleId}", testRaffleId);
+        }
+        catch (Exception ex)
+        {
+            LogEvent("BROADCAST_ERROR", ex.Message);
+            Logger.LogError(ex, "Error broadcasting RaffleUpdated");
+        }
+        finally
+        {
+            isBroadcasting = false;
+        }
+    }
+
+    private async Task BroadcastTicketsSold()
+    {
+        isBroadcasting = true;
+        try
+        {
+            await Api.SendRequestAsync($"testing/broadcast-tickets-sold/{testRaffleId}?ticketsSold={testTicketsSold}&ticketsAvailable={testTicketsAvailable}", "POST");
+            LogEvent("BROADCAST_SENT", $"TicketsSold for raffle {testRaffleId}");
+            Logger.LogInformation("Broadcast sent: TicketsSold for raffle {RaffleId}", testRaffleId);
+        }
+        catch (Exception ex)
+        {
+            LogEvent("BROADCAST_ERROR", ex.Message);
+            Logger.LogError(ex, "Error broadcasting TicketsSold");
+        }
+        finally
+        {
+            isBroadcasting = false;
+        }
+    }
+
+    private async Task BroadcastWinnerDrawn()
+    {
+        isBroadcasting = true;
+        try
+        {
+            await Api.SendRequestAsync($"testing/broadcast-winner-drawn/{testRaffleId}", "POST");
+            LogEvent("BROADCAST_SENT", $"WinnerDrawn for raffle {testRaffleId}");
+            Logger.LogInformation("Broadcast sent: WinnerDrawn for raffle {RaffleId}", testRaffleId);
+        }
+        catch (Exception ex)
+        {
+            LogEvent("BROADCAST_ERROR", ex.Message);
+            Logger.LogError(ex, "Error broadcasting WinnerDrawn");
+        }
+        finally
+        {
+            isBroadcasting = false;
+        }
+    }
+
+    private void ClearLog()
+    {
+        eventLog.Clear();
+        Logger.LogInformation("Event log cleared");
+    }
+
+    public void Dispose()
+    {
+        SignalR.OnRafflesUpdated -= OnRafflesUpdated;
+        SignalR.OnRaffleUpdated -= OnRaffleUpdated;
+        SignalR.OnTicketsSold -= OnTicketsSold;
+        SignalR.OnWinnerDrawn -= OnWinnerDrawn;
+    }
+
+    private class EventLogEntry
+    {
+        public string EventName { get; set; } = string.Empty;
+        public string Data { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+    }
+}

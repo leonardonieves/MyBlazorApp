@@ -4,7 +4,9 @@
 @inject NavigationManager Navigation
 @inject ApiService Api
 @inject AuthStateService AuthState
+@inject SignalRService SignalR
 @inject ILogger<MyTickets> Logger
+@implements IDisposable
 
 <PageTitle>My Tickets - World Cup Sweepstakes</PageTitle>
 
@@ -327,7 +329,27 @@
 
     protected override async Task OnInitializedAsync()
     {
+        SignalR.OnRafflesUpdated += OnTicketsChangedAsync;
+        SignalR.OnWinnerDrawn += OnWinnerDrawnAsync;
         await LoadData();
+    }
+
+    private async Task OnTicketsChangedAsync()
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadData();
+            StateHasChanged();
+        });
+    }
+
+    private async Task OnWinnerDrawnAsync(int raffleId)
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadData();
+            StateHasChanged();
+        });
     }
 
     private async Task LoadData()
@@ -359,5 +381,11 @@
     {
         await AuthState.LogoutAsync();
         Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        SignalR.OnRafflesUpdated -= OnTicketsChangedAsync;
+        SignalR.OnWinnerDrawn -= OnWinnerDrawnAsync;
     }
 }

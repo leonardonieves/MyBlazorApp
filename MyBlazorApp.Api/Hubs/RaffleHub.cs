@@ -9,9 +9,21 @@ public class RaffleHub : Hub
 {
     private readonly ILogger<RaffleHub> _logger;
 
+    public const string GlobalGroup = "all_raffles";
+
     public RaffleHub(ILogger<RaffleHub> logger)
     {
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Called when a client connects - automatically join global group
+    /// </summary>
+    public override async Task OnConnectedAsync()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, GlobalGroup);
+        _logger.LogInformation("Client {ConnectionId} connected and joined global group", Context.ConnectionId);
+        await base.OnConnectedAsync();
     }
 
     /// <summary>
@@ -47,6 +59,15 @@ public class RaffleHub : Hub
     /// Get the group name for a raffle
     /// </summary>
     public static string GetRaffleGroupName(int raffleId) => $"raffle_{raffleId}";
+
+    // Event name constants
+    public static class Events
+    {
+        public const string RafflesUpdated = "RafflesUpdated";
+        public const string RaffleUpdated = "RaffleUpdated";
+        public const string TicketsSold = "TicketsSold";
+        public const string WinnerDrawn = "WinnerDrawn";
+    }
 }
 
 /// <summary>

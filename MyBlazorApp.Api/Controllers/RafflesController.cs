@@ -15,15 +15,18 @@ public class RafflesController : ControllerBase
 {
     private readonly RaffleService _raffleService;
     private readonly StripeService _stripeService;
+    private readonly SignalRNotificationService _signalR;
     private readonly ILogger<RafflesController> _logger;
 
     public RafflesController(
         RaffleService raffleService,
         StripeService stripeService,
+        SignalRNotificationService signalR,
         ILogger<RafflesController> logger)
     {
         _raffleService = raffleService;
         _stripeService = stripeService;
+        _signalR = signalR;
         _logger = logger;
     }
 
@@ -154,6 +157,8 @@ public class RafflesController : ControllerBase
                 WinnerName = winner.Ticket.BuyerName,
                 AnnouncedAt = winner.AnnouncedAt
             };
+
+            await _signalR.NotifyWinnerDrawnAsync(id);
 
             return Ok(winnerDto);
         }
